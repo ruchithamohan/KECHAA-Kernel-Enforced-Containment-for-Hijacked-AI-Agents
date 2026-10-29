@@ -1,0 +1,34 @@
+# The user's architecture PDF must never be committed.
+*.pdf
+.local/
+# Only this reviewed release's source archive and checksum are deliverables.
+dist/*
+!dist/kechaa-0.2.0a1-source.tar.gz
+!dist/kechaa-0.2.0a1-source.tar.gz.sha256
+build/
+*.egg-info/
+__pycache__/
+*.py[cod]
+*.db
+*.db-*
+*.sock
+*.key
+*.grant
+.env
+.env.*
+.venv/
+venv/
+*.sqlite
+*.sqlite3
+*.pem
+*.p12
+*.pfx
+*.qcow2
+*.img
+*.iso
+*.log
+.aws/
+.ssh/
+.codex/
+.agents/
+.DS_Store

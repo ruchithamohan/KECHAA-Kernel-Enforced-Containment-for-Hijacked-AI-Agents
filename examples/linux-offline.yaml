@@ -1,0 +1,65 @@
+# Debian 13 ARM64 example for a disposable VM with /work/project on a dedicated
+# quota-bounded filesystem. Generate canonical paths with policy init on other systems.
+schema: 1
+name: offline-development
+default: deny
+roots:
+  - /work/project
+sensitive:
+  - /home/agent/.ssh
+  - /home/agent/.aws
+  - /home/agent/.claude
+grant_ttl_seconds: 60
+profiles:
+  development:
+    read: [/work/project, /usr, /etc/debian_version]
+    write: [/work/project]
+    execute: [/usr/bin/dash, /usr/bin/echo, /usr/bin/cat, /usr/bin/ls, /usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1]
+    network: offline
+    environment:
+      PATH: /usr/bin:/bin
+      LANG: C
+      HOME: /work/project/.home
+      TMPDIR: /work/project/.tmp
+    limits:
+      wall_seconds: 60
+      cpu_seconds: 30
+      memory_mb: 256
+      pids: 32
+      output_bytes: 1048576
+      file_bytes: 16777216
+  readonly:
+    extends: development
+    read: [/work/project, /usr, /etc/debian_version]
+    write: []
+    execute: [/usr/bin/echo, /usr/bin/cat, /usr/bin/ls, /usr/lib/aarch64-linux-gnu/ld-linux-aarch64.so.1]
+    network: offline
+    environment:
+      PATH: /usr/bin:/bin
+      LANG: C
+      HOME: /work/project/.home
+      TMPDIR: /work/project/.tmp
+    limits:
+      wall_seconds: 30
+      cpu_seconds: 10
+      memory_mb: 128
+      pids: 8
+      output_bytes: 1048576
+      file_bytes: 16777216
+rules:
+  - id: shell-development
+    executable: /usr/bin/dash
+    profile: development
+    decision: ask
+  - id: echo-readonly
+    executable: /usr/bin/echo
+    profile: readonly
+    decision: ask
+  - id: cat-readonly
+    executable: /usr/bin/cat
+    profile: readonly
+    decision: ask
+  - id: ls-readonly
+    executable: /usr/bin/ls
+    profile: readonly
+    decision: ask
