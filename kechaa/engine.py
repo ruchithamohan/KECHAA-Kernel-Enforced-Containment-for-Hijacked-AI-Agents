@@ -35,6 +35,16 @@ class Engine:
             require(initial is not None, "policy_required", "First startup requires a validated policy.", "operational_error")
             self.policy = initial
         with store.transaction():
+            # Legacy state could keep several simultaneous identities under one
+            # Unix UID. Recovered workers/grants are already revoked on restart;
+            # close every ambiguous run rather than choosing a winning session.
+            conflicts = [row[0] for row in store.db.execute(
+                "SELECT uid FROM runs WHERE closed=0 GROUP BY uid HAVING COUNT(*)>1")]
+            for target in conflicts:
+                store.db.execute("UPDATE runs SET closed=1,revision=revision+1 WHERE uid=? AND closed=0", (target,))
+                store.event("identity_conflict_closed", {"uid": target,
+                            "reason": "Use a distinct OS UID for each live session; reconfirm the intended contract."}, owner)
+            store.db.execute("CREATE UNIQUE INDEX IF NOT EXISTS run_active_uid ON runs(uid) WHERE closed=0")
             if not active:
                 self._activate(self.policy)
             count = store.db.execute("SELECT COUNT(*) FROM grants WHERE state IN ('pending','issued','adopted','running')").fetchone()[0]
@@ -96,7 +106,12 @@ class Engine:
         target = integer(data["uid"], 1 if not self.diagnostic else 0, 2147483647, "uid")
         identifier(data["session"], "session")
         require(data["confirmed"] is True, "contract_confirmation", "Administrator must inspect and explicitly confirm the task contract.")
-        contract = fields(data["contract"], {"roots", "executables", "write"}, {"lifetime_seconds"}, where="contract")
+        contract = fields(data["contract"], {"roots", "executables", "write"}, {"lifetime_seconds", "input_integrity"}, where="contract")
+        integrity = contract.get("input_integrity", "recheck")
+        require(integrity in ("recheck", "immutable-workspace"), "contract_integrity",
+                "input_integrity must be recheck or immutable-workspace.", "invalid_request")
+        require(integrity != "immutable-workspace" or contract["write"] is False, "contract_integrity",
+                "Immutable-workspace contracts must disable writes and use dedicated read-only filesystems.")
         lifetime = integer(contract.get("lifetime_seconds", 3600), 1, 86400, "contract lifetime_seconds")
         require(type(contract["write"]) is bool, "contract_write", "Contract write must be true or false.")
         require(isinstance(contract["roots"], list) and 1 <= len(contract["roots"]) <= 16,
@@ -111,9 +126,13 @@ class Engine:
         require(self.store.db.execute("SELECT COUNT(*) FROM runs").fetchone()[0] < 1000, "run_capacity", "Run capacity reached; archive state administratively.", "operational_error")
         existing = self.store.db.execute("SELECT id FROM runs WHERE uid=? AND session=?", (target, data["session"])).fetchone()
         require(existing is None, "session_exists", "Session already exists; resume its persisted run instead of resetting posture.")
+        self.expire_runs()
+        require(self.store.db.execute("SELECT 1 FROM runs WHERE uid=? AND closed=0", (target,)).fetchone() is None,
+                "identity_in_use", "This OS UID already owns a live session. Resume it or use a separate OS account; session strings do not isolate hostile callers.")
         run_id = secrets.token_hex(16)
         opened = time.time_ns() // 1000000
-        body = {"contract": {"roots": roots, "executables": executables, "write": contract["write"], "lifetime_seconds": lifetime}, "labels": [],
+        body = {"contract": {"roots": roots, "executables": executables, "write": contract["write"], "lifetime_seconds": lifetime,
+                             "input_integrity": integrity}, "labels": [],
                 "opened_ms": opened, "expires_ms": opened + lifetime * 1000,
                 "signals": [], "actions": 0, "policy_at_confirmation": self.policy.version, "observed_effects_complete": False}
         with self.store.transaction():
@@ -135,6 +154,12 @@ class Engine:
         if not self.diagnostic:
             from .backends.linux import workspace_filesystems
             envelope["workspace_filesystems"] = workspace_filesystems(contract["roots"])
+            if contract.get("input_integrity") == "immutable-workspace":
+                require(all(item["readonly"] for item in envelope["workspace_filesystems"]),
+                        "workspace_mutable", "Immutable workspace inputs require dedicated filesystems mounted read-only before approval. A read-only action on a writable filesystem is insufficient.", "compatibility_block")
+        elif contract.get("input_integrity") == "immutable-workspace":
+            raise KechaaError("immutable_unavailable", "Diagnostics cannot establish kernel-enforced workspace immutability.", "compatibility_block")
+        envelope["input_integrity"] = contract.get("input_integrity", "recheck")
         # The contract narrows project access while retaining separately approved runtime reads.
         policy_roots = self.policy.document["roots"]
         for key in ("read", "write"):
@@ -160,6 +185,8 @@ class Engine:
         envelope["devices"] = {"/dev/null": "read and write; ioctl denied"}
         identified = effects.identify(action, envelope, privileged=not self.diagnostic)
         self.expire()
+        pending = self.store.db.execute("SELECT COUNT(*) FROM grants WHERE run=? AND state IN ('pending','issued')", (row['id'],)).fetchone()[0]
+        require(pending < 16, "run_grant_capacity", "This run has 16 unused grants. Consume or revoke them before requesting more.", "operational_error")
         require(len(self.deadlines) < 256, "grant_capacity", "At most 256 live grants are supported; consume or revoke pending grants.", "operational_error")
         grant_id = secrets.token_hex(24)
         ttl = self.policy.document["grant_ttl_seconds"]
@@ -221,8 +248,9 @@ class Engine:
         run = self.run(data["run"], data["session"], uid)
         require(body["run"] == run["id"] and body["session"] == data["session"] and body["uid"] == uid,
                 "grant_binding", "Grant is bound to a different run, session, or OS user.")
-        self.valid_time(body)
+        require(row["state"] != "expired", "grant_expired", "Grant expired; request a fresh approval.")
         require(row["state"] == "issued", "grant_replay", "Grant is pending, consumed, or revoked; it cannot authorize another execution.")
+        self.valid_time(body)
         require(body["revision"] == run["revision"] and body["policy"] == self.policy.version and body["profile"] == self.profile,
                 "grant_stale", "Policy, run posture, or execution profile changed; request a new grant.")
         action = effects.request(data["action"])
@@ -239,6 +267,8 @@ class Engine:
             cursor = self.store.db.execute("UPDATE grants SET state=? WHERE id=? AND state='issued'", ("simulated" if simulation else "adopted", body["id"]))
             require(cursor.rowcount == 1, "grant_replay", "Grant already consumed.")
             self.store.event("grant_simulated" if simulation else "grant_adopted", {"grant": body["id"], "run": body["run"], "executed": False, "effects_digest": body["effects_digest"]}, uid)
+        if simulation:
+            self.deadlines.pop(body["id"], None)
         return body
 
     def finish(self, body: dict, result: dict) -> None:
@@ -251,6 +281,7 @@ class Engine:
             self.store.event("action_finished", {"run": body["run"], "grant": body["id"],
                              **{k: v for k, v in result.items() if k not in ("stdout", "stderr")},
                              "observed_effects_complete": False}, body["uid"])
+        self.deadlines.pop(body["id"], None)
 
     def tighten(self, data: dict, uid: int) -> dict:
         fields(data, {"run", "session", "label"})
@@ -344,6 +375,12 @@ class Engine:
         return {"active_policy": candidate.version, "terminate_all_active": True}
 
     def expire(self) -> None:
+        # Revocation changes durable state immediately. Do not retain its
+        # admission slot until the old deadline (active workers keep theirs).
+        live = {row[0] for row in self.store.db.execute(
+            "SELECT id FROM grants WHERE state IN ('pending','issued','adopted','running')")}
+        for key in self.deadlines.keys() - live:
+            self.deadlines.pop(key)
         expired = [key for key, deadline in self.deadlines.items() if time.monotonic() >= deadline]
         if not expired:
             return
@@ -382,7 +419,10 @@ class Engine:
                                  "network": "offline-only", "observation": "lifecycle-only",
                                  "leases": False, "whole_agent_containment": False,
                                  "policy_history": True, "policy_rollback": True, "expiring_policy_rules": True,
-                                 "signed_audit_checkpoints": True, "offline_backups": True},
+                                 "signed_audit_checkpoints": True, "offline_backups": True,
+                                 "live_session_identity": "exclusive-os-uid",
+                                 "workspace_integrity": "unavailable" if self.diagnostic else "optional-readonly-filesystem",
+                                 "aggregate_cpu_budget": not self.diagnostic},
                 "uptime_ms": int((time.monotonic() - self.started) * 1000), "epoch": self.epoch,
                 "audit_sequence": int(self.store.meta("audit_sequence") or 0),
                 "execution_available": not self.diagnostic, "production_ready": False,

@@ -68,7 +68,8 @@ def workspace_filesystems(roots: list[str]) -> list[dict]:
         left, right = line.split(' - ', 1)
         parts = left.split()
         mounts.append({'device': parts[2], 'root': unescape(parts[3]),
-                       'path': unescape(parts[4]), 'type': right.split()[0]})
+                       'path': unescape(parts[4]), 'type': right.split()[0],
+                       'readonly': 'ro' in parts[5].split(',') and 'ro' in right.split()[2].split(',')})
     result = []
     for root in roots:
         with open_path(root, directory=True) as fd:
@@ -81,7 +82,8 @@ def workspace_filesystems(roots: list[str]) -> list[dict]:
                 'workspace_filesystem',
                 'Each confirmed workspace root must be the sole mount of a dedicated ext4 or tmpfs filesystem, without nested mounts. A shared host directory or bind mount permits pre-existing hardlink aliases and is refused. Prepare a quota-bounded volume inside the disposable VM.',
                 'compatibility_block')
-        result.append({'path': root, 'device': str(st.st_dev), 'inode': str(st.st_ino), 'type': matches[0]['type']})
+        result.append({'path': root, 'device': str(st.st_dev), 'inode': str(st.st_ino), 'type': matches[0]['type'],
+                       'readonly': matches[0]['readonly']})
     return result
 
 
@@ -118,7 +120,7 @@ def inspect(cgroup_root: str) -> dict:
             "candidate_profile": "linux-offline-experimental", "failures": failures,
             "runtime_checks": "seccomp, namespaces, read-only mounts, credential drop, cgroup limits and every Landlock rule are mandatory at each launch",
             "workspace_requirement": "dedicated ext4 or tmpfs filesystem; no bind aliases or nested mounts; checked at grant preparation and adoption",
-            "kernel_validation": "Passing preflight does not verify this deployment; executed ARM64 scenarios are documented in docs/completion.md"}
+            "kernel_validation": "Passing preflight does not verify this deployment; executed lab scenarios are documented in docs/completion.md"}
 
 
 class Ruleset(ctypes.Structure):
@@ -254,6 +256,8 @@ def cgroup_create(parent: str, grant_id: str, envelope: dict) -> Path:
                             "memory.oom.group": "1", "pids.max": str(limits["pids"]), "cpu.max": "100000 100000"}.items():
             (path / name).write_text(value)
         require((path / "cgroup.kill").is_file(), "cgroup_kill", "cgroup.kill is mandatory for action cleanup.")
+        cpu_usage(path)
+        populated(path)
     except BaseException:
         path.rmdir()
         raise
@@ -262,6 +266,22 @@ def cgroup_create(parent: str, grant_id: str, envelope: dict) -> Path:
 
 def kill_group(path: Path) -> None:
     (path / "cgroup.kill").write_text("1")
+
+
+def populated(path: Path) -> bool:
+    values = dict(line.split() for line in read_bounded(path / 'cgroup.events', 16384).decode().splitlines())
+    require(values.get('populated') in ('0', '1'), 'cgroup_events', 'Cannot establish whether the action process tree is empty.')
+    return values['populated'] == '1'
+
+
+def cpu_usage(path: Path) -> int:
+    try:
+        values = dict(line.split() for line in read_bounded(path / 'cpu.stat', 16384).decode().splitlines())
+        value = int(values['usage_usec'])
+        require(0 <= value <= 9007199254740991, 'cpu_accounting', 'Invalid action CPU accounting counter.')
+        return value
+    except (OSError, ValueError, KeyError) as exc:
+        raise KechaaError('cpu_accounting', 'Aggregate CPU accounting unavailable; action execution must stop.', 'operational_error') from exc
 
 
 def accounting(path: Path) -> dict:
@@ -288,7 +308,10 @@ def recover(parent: str) -> list[str]:
         if path.name.startswith("action-") and len(suffix) == 48 and all(c in "0123456789abcdef" for c in suffix):
             require(not path.is_symlink(), "cgroup_symlink", "Refusing a symlink in the dedicated cgroup subtree.")
             kill_group(path)
-            # Removal can fail while the kernel is reaping; fail closed on startup.
+            deadline = time.monotonic() + 5
+            while populated(path) and time.monotonic() < deadline:
+                time.sleep(0.02)
+            require(not populated(path), 'cleanup_incomplete', 'Recovered cgroup remains populated; startup refused.', 'operational_error')
             path.rmdir()
             recovered.append(path.name)
     return recovered
@@ -303,6 +326,10 @@ def worker(config: dict) -> int:
     cgroup = Path(config["cgroup"])
     (cgroup / "cgroup.procs").write_text(str(os.getpid()))
     body = config["grant"]
+    # Recheck mount identity/read-only state immediately before namespace setup.
+    expected = body["effects"]["workspace_filesystems"]
+    require(workspace_filesystems([item['path'] for item in expected]) == expected,
+            'workspace_changed', 'Workspace mount changed before worker containment.')
     limits = body["effects"]["limits"]
     account = pwd.getpwuid(config["uid"])
     require(account.pw_gid > 0, "worker_group", "Target primary group cannot be root.")

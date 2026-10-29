@@ -7,6 +7,9 @@ from pathlib import Path
 # Resolve imports from the installed, administrator-owned application directory.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from kechaa.bootstrap import configure
+configure()
+
 from kechaa.common import MAX_MESSAGE, KechaaError, decode
 
 

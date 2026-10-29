@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env -S python3 -IS
 """Offline, explicit-prefix installation and conservative manifest-based removal."""
 from __future__ import annotations
 import argparse
@@ -128,6 +128,8 @@ def uninstall(prefix: Path, *, remove: bool = True) -> None:
 
 
 def main():
+    if os.geteuid() == 0 and (not sys.flags.isolated or not sys.flags.no_site):
+        raise SystemExit('Root installation requires: python -IS tools/install.py. Use an administrator-controlled interpreter; site hooks must be disabled.')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('operation', choices=('install', 'verify', 'uninstall'))
     parser.add_argument('--prefix', type=Path, required=True)
@@ -145,17 +147,17 @@ def main():
     interpreter = str(Path(args.python).absolute())
     if any(c.isspace() for c in interpreter) or '\x00' in interpreter:
         raise SystemExit('Interpreter path must not contain whitespace or NUL.')
-    probe_source = '''import sys
-from importlib.metadata import version
-import yaml, cryptography
-required = {"PyYAML": "6.0.3", "cryptography": "48.0.1", "cffi": "2.0.0", "pycparser": "3.0"}
-sys.exit(0 if sys.version_info >= (3, 11) and all(version(name) == value for name, value in required.items()) else 1)
-'''
-    probe = subprocess.run([interpreter, '-I', '-c', probe_source],
+    source = Path(__file__).resolve().parent.parent / 'kechaa'
+    probe_source = ('import sys\n'
+                    'sys.path.insert(0, ' + repr(str(source.parent)) + ')\n'
+                    'from kechaa.bootstrap import configure\n'
+                    'configure()\n'
+                    'import yaml, cryptography\n'
+                    'sys.exit(0 if sys.version_info >= (3, 11) else 1)\n')
+    probe = subprocess.run([interpreter, '-IS', '-c', probe_source],
                            check=False, timeout=15, capture_output=True)
     if probe.returncode:
         raise SystemExit('Interpreter requires Python 3.11+ and all exact dependency versions from requirements.txt. Install reviewed dependencies first; this installer never downloads.')
-    source = Path(__file__).resolve().parent.parent / 'kechaa'
     with directory(prefix, create=True) as descriptor:
         st = os.fstat(descriptor)
         if st.st_uid != os.geteuid() or st.st_mode & 0o022:
@@ -171,7 +173,10 @@ sys.exit(0 if sys.version_info >= (3, 11) and all(version(name) == value for nam
     binary = prefix / 'bin' / 'kechaa'
     binary.parent.mkdir(mode=0o755, exist_ok=True)
     # A fixed shebang interpreter avoids PATH or shell expansion. Reject unsafe paths.
-    binary.write_text('#!' + interpreter + ' -I\nimport sys\nfrom pathlib import Path\nsys.path.insert(0, str(Path(__file__).resolve().parent.parent / "lib"))\nfrom kechaa.cli import main\nraise SystemExit(main())\n')
+    launcher = (source.parent / 'bin' / 'kechaa').read_text().split('\n', 1)[1]
+    if launcher.count('LIB_DIRECTORY = ""') != 1:
+        raise SystemExit('Unrecognized source launcher; installation refused.')
+    binary.write_text('#!' + interpreter + ' -IS\n' + launcher.replace('LIB_DIRECTORY = ""', 'LIB_DIRECTORY = "lib"'))
     binary.chmod(0o755)
     records['bin/kechaa'] = hashlib.sha256(binary.read_bytes()).hexdigest()
     manifest.write_text(json.dumps({'schema': 1, 'files': records}, indent=2) + '\n')

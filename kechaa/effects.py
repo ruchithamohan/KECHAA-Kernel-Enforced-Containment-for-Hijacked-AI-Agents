@@ -141,4 +141,6 @@ def identify(action: dict, effects: dict, *, privileged: bool = False) -> dict:
             artifacts[path] = file_digest(fd, 16777216)
     return {"cwd_identity": cwd_identity, "executables": executables, "artifacts": artifacts,
             "classification": classification,
-            "integrity": "Digests rechecked at adoption; mutable scripts and transitive inputs are not frozen."}
+            "integrity": ("Dedicated workspace filesystems must remain read-only; administrator-owned runtime inputs remain trusted."
+                          if effects.get("input_integrity") == "immutable-workspace" else
+                          "Digests rechecked at adoption; mutable scripts and transitive inputs are not frozen.")}

@@ -121,6 +121,8 @@ def parser() -> argparse.ArgumentParser:
     q = audit.add_parser("export")
     q.add_argument("--output", type=Path, required=True)
     q.add_argument("--state", type=Path, help="Offline read-only export from a stopped or full daemon database")
+    q = audit.add_parser("bundle", help="Export a verified checkpointed prefix and public key; never copies private signing keys")
+    q.add_argument("--output", type=Path, required=True, help="New private directory for forwarding through your reviewed evidence system")
     state = sub.add_parser("state", help="Offline authenticated backup and restoration; never overwrites live state").add_subparsers(dest="state_command", required=True)
     q = state.add_parser("backup")
     q.add_argument("--state", type=Path, required=True)
@@ -285,26 +287,16 @@ def handle(args) -> int:
             checkpoint = call(args.admin_socket, "audit_checkpoint")
             write_new(args.output, canonical(checkpoint) + b'\n')
             output({"checkpoint": str(args.output), "head": checkpoint["checkpoint"]["head"]})
+        elif args.audit_command == "bundle":
+            from .evidence import export_live
+            output(export_live(args.admin_socket, args.output.absolute(), bundle=True))
         else:
             if args.state:
                 from .store import export_offline
                 output(export_offline(args.state, args.output))
                 return 0
-            after = 0
-            fd = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-            with os.fdopen(fd, "wb") as stream:
-                while True:
-                    result = call(args.admin_socket, "audit_export", {"after": after, "limit": 50})
-                    events = result["events"]
-                    if not events:
-                        break
-                    for event in events:
-                        stream.write(canonical(event) + b"\n")
-                        after = event["record"]["sequence"]
-                    require(after <= 50000, "audit_size", "Audit export exceeds capacity.", "operational_error")
-                stream.flush()
-                os.fsync(stream.fileno())
-            output({"exported_events": after, "file": str(args.output), "head": result["head"]})
+            from .evidence import export_live
+            output(export_live(args.admin_socket, args.output.absolute()))
     elif cmd == "state":
         from . import recovery
         if args.state_command == "backup":

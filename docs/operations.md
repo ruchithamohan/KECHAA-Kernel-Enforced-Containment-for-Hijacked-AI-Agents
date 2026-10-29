@@ -16,7 +16,7 @@ an approved connected setup, a typical preparation is:
 ```bash
 python3 -m venv ./runtime
 ./runtime/bin/python -m pip install -r requirements.txt
-./runtime/bin/python tools/install.py install --prefix ./installation --python /absolute/path/runtime/bin/python
+./runtime/bin/python -IS tools/install.py install --prefix ./installation --python /absolute/path/runtime/bin/python
 ./installation/bin/kechaa version
 ./installation/bin/kechaa preflight
 ```
@@ -28,13 +28,21 @@ independently verified for an enterprise distribution. Do not grant Linux file
 capabilities to a general-purpose Python interpreter.
 
 The installer copies only KECHAA source and creates an entry point with a fixed
-interpreter and isolated Python startup. It records a manifest of installed
+interpreter and `-IS` Python startup. `.pth`, `sitecustomize`, user sites and
+inherited Python paths cannot run before authorization. Use this entrypoint;
+a conventional pip-generated console script lacks these startup flags and is
+refused. Keep a minimal dedicated runtime with direct, pinned wheel installations;
+`.pth` indirection is intentionally unsupported. Root startup checks every
+application/dependency entry, including cached bytecode, for ownership, type and
+write permissions before importing third-party code. The interpreter, standard
+library and administrator remain trusted. These checks are not build attestation.
+It records a manifest of installed
 file hashes, refuses nonempty prefixes and checks the resulting executable's
 version. It checks all four pinned dependency versions and Python's minimum
 version before copying files. Prefix components must be real directories; use
 canonical paths such as `/private/tmp` instead of a symlink such as `/tmp` on macOS.
 Dependencies stay in the chosen environment. The source-checkout entry
-point is `python -I bin/kechaa`; a root daemon must use a root-owned installation.
+point is `python -IS bin/kechaa`; a root daemon must use a root-owned installation.
 
 ## First run
 
@@ -109,7 +117,8 @@ versions persist. No lease is resumed or renewed.
 
 Shutdown stops request admission and cancels outstanding handlers. Cleanup is
 shielded from repeated cancellation, attempts cgroup and supervisor termination
-independently, and bounds each supervisor wait to five seconds. Incomplete cleanup
+independently, and bounds each supervisor wait to five seconds. It also confirms `cgroup.events` reports
+`populated 0` within five seconds before removing an action boundary. Incomplete cleanup
 holds readiness and is recorded in the action result; a failed administrative
 termination is reported as `cleanup_incomplete`. Bounded cancellation, session expiry, daemon crash and restart were exercised
 on ARM64; exhaustive race and distribution coverage remains unverified. The actual diagnostic socket-initialization failure path was
@@ -131,7 +140,7 @@ kechaa audit verify --file incident.jsonl --public-key ./state/audit.pub --expec
 An offline export is read-only and uses one SQLite snapshot. Verification without
 `--expected-head` verifies the included chain but cannot establish its completeness.
 Exported audit files default to mode 0600. Keep the public key and checkpoints in
-an independently administered evidence store. Remote forwarding is not built in.
+an independently administered evidence store. Remote forwarding is operator-managed; use the public evidence bundle below.
 
 ## Enterprise administration and data handling
 
@@ -163,7 +172,7 @@ or socket directory. Restart invalidates old grants.
 Remove only files whose hashes still match the installation manifest:
 
 ```bash
-python tools/install.py uninstall --prefix ./installation
+python -IS tools/install.py uninstall --prefix ./installation
 ```
 
 Removal never deletes state, policies, project files, dependencies or hook settings.
@@ -214,9 +223,11 @@ kechaa audit export --output evidence.jsonl
 kechaa audit verify --file evidence.jsonl --public-key /trusted/audit.pub --checkpoint checkpoint.json
 ```
 
-A checkpoint authenticates a particular prefix/head. If later events were
-exported too, use their matching checkpoint or retain only the exact checkpoint
-prefix for verification; a head mismatch must not be ignored. Copy public keys
+A checkpoint authenticates a particular prefix/head. Live export now obtains its
+own checkpoint first and verifies exactly that prefix while writing; it returns
+the matching checkpoint. Prefer `audit bundle` to retain the matching files
+together. A separately captured older checkpoint may not match a later export;
+a head mismatch must never be ignored. Copy public keys
 and checkpoints to independently controlled storage. Local signatures do not
 prevent an administrator/key holder from rewriting history or replacing all state.
 
@@ -292,6 +303,44 @@ provisioning command is:
 python -m pip install --no-index --find-links /approved/wheelhouse --require-hashes -r requirements-linux-arm64-cp313.lock
 ```
 
-The lock is platform/interpreter-specific. It is generated from the exact public
+For the separately operated x86_64 wheel set, substitute
+`requirements-linux-x86_64-cp313.lock`. Each lock is platform/interpreter-specific. It is generated from the exact public
 wheel hashes verified during VM provisioning; other platforms need a separately
 reviewed wheel inventory. No dependency or VM binary is bundled in source releases.
+
+## Audit-hardening upgrade and operations
+
+Only one live session per OS UID is admitted. Close it through the authenticated
+agent connection before confirming a replacement, or use another OS account.
+An upgrade closes every conflicting legacy live session and records
+`identity_conflict_closed`; an administrator must reconfirm the intended contract.
+This avoids treating session strings as separate hostile identities. It does not
+isolate unconfined processes that already share the account. At most 16 unused
+grants per run and 256 global live grants are admitted; revocation releases
+admission capacity. The daemon still executes one action at a time.
+
+For read-only analysis, set `"input_integrity":"immutable-workspace"` and
+`"write":false` in the contract. An administrator must prepare every dedicated
+workspace filesystem read-only at both mount and superblock levels before
+approval. A read-only bind mount over writable storage is insufficient. KECHAA
+rechecks this metadata at adoption and launch; it does not create snapshots or
+freeze administrator-owned runtime files. Ordinary `recheck` contracts preserve
+existing writable workflows and their documented mutation limitation.
+
+The CPU budget includes all action descendants using cgroup `cpu.stat`, sampled
+every 50 ms, plus per-process RLIMIT_CPU. Sampling and daemon scheduling permit
+overshoot; this is not an exact CPU cutoff. Provision a size/quota-bounded volume
+for aggregate disk use; per-file size limits do not supply a disk quota.
+
+```bash
+kechaa --admin-socket /run/kechaa/admin.sock audit bundle --output ./evidence-new
+kechaa audit verify --file ./evidence-new/audit.jsonl --public-key /trusted/audit.pub --checkpoint ./evidence-new/checkpoint.json
+```
+
+The bundle contains the verified log prefix, public key, signed checkpoint and
+`bundle.json` completeness receipt. It never contains the private signing key.
+The receipt is written last; preserve failed/incomplete exports for investigation.
+Use your existing approved evidence system to copy completed bundles to separately
+administered storage. Verify against an independently retained public key, not
+just a key delivered in the same bundle. This is not automatic forwarding,
+retention, rotation or independent anchoring.

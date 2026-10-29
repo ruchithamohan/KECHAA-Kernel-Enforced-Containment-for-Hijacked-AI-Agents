@@ -35,3 +35,16 @@ reproducible dependency builds or enterprise supply-chain attestation.
 Exact local download manifests are preserved under .local/vm (excluded from the
 release). Package checksums and the VM configuration are summarized in
 completion.md. This document provides the source distribution's dependency notice inventory.
+
+The hardened startup uses `-IS`, explicit dependency paths and root ownership
+checks for application/dependency trees before third-party import. `.pth` and
+sitecustomize are not processed. These controls prevent the operated writable
+module/startup-hook cases; they do not authenticate native builds or the standard
+library. A minimal direct-wheel runtime is required, without site-hook indirection.
+
+The audit follow-up also operated official CPython 3.13 Linux x86_64 wheels,
+recorded in `requirements-linux-x86_64-cp313.lock`. The Debian 13 nocloud amd64
+image archive matched its official HTTPS SHA-512 checksum:
+`1861dc81f016077ac2803de462b0099f7d3827e9bf7080626de91cca7aef61776ceeb5cda890dad860cb12e44310e5df0cd88a05f2b6cc5e247d088c18cca7a7`.
+This expands the operated inventory; it is not an independently authenticated
+image signature or proof of reproducible upstream builds.
