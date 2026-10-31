@@ -82,10 +82,24 @@ def parser() -> argparse.ArgumentParser:
     q.add_argument("--session", required=True)
     q.add_argument("--contract", type=Path, required=True)
     q.add_argument("--confirm", action="store_true", help="Administrator has inspected the displayed contract")
-    for name in ("show", "close"):
+    for name in ("show", "close", "history"):
         q = run.add_parser(name)
         q.add_argument("--run", required=True)
         q.add_argument("--session", required=True)
+        if name == "history":
+            q.add_argument("--limit", type=int, default=64)
+    q = run.add_parser("renew")
+    q.add_argument("--run", required=True)
+    q.add_argument("--seconds", type=int, required=True)
+    q.add_argument("--reason", required=True)
+    q = run.add_parser("quarantine")
+    q.add_argument("--run", required=True)
+    q.add_argument("--reason", required=True)
+    q = run.add_parser("recover")
+    q.add_argument("--run", required=True)
+    q.add_argument("--mode", choices=("normal", "guarded", "lockdown"), required=True)
+    q.add_argument("--seconds", type=int, required=True)
+    q.add_argument("--reason", required=True)
     for name in ("prepare", "exec", "simulate"):
         q = sub.add_parser(name, help={"prepare": "Inspect an envelope and request a grant", "exec": "Consume a grant and execute only through the daemon backend", "simulate": "DIAGNOSTIC ONLY: consume a grant WITHOUT executing"}[name])
         q.add_argument("--run", required=True)
@@ -106,6 +120,12 @@ def parser() -> argparse.ArgumentParser:
     q.add_argument("--run", required=True)
     q.add_argument("--session", required=True)
     q.add_argument("--label", choices=("untrusted_web", "untrusted_repository", "untrusted_mcp", "credential_exposure"), required=True)
+    q = sub.add_parser("trusted-event", help="Administrator/supervisor posture event; can only tighten or quarantine")
+    q.add_argument("--run", required=True)
+    q.add_argument("--session")
+    q.add_argument("--label", choices=("untrusted_web", "untrusted_repository", "untrusted_mcp", "credential_exposure", "tool_denied", "bypass_attempt", "policy_violation", "agent_compromise"), required=True)
+    q.add_argument("--source", choices=("supervisor", "tool_gateway", "kernel", "admin", "client_report"), required=True)
+    q.add_argument("--reason")
     q = sub.add_parser("checkpoint", help="Administrator-only posture change; preserves labels and audit history")
     q.add_argument("--run", required=True)
     q.add_argument("--mode", choices=("normal", "guarded", "lockdown"), required=True)
@@ -118,6 +138,10 @@ def parser() -> argparse.ArgumentParser:
     q.add_argument("--checkpoint", type=Path, help="Authenticate the expected head using a saved signed checkpoint")
     q = audit.add_parser("checkpoint")
     q.add_argument("--output", type=Path, required=True, help="New file for the signed checkpoint; copy it to independent storage")
+    audit.add_parser("anchor", help="Persist a signed checkpoint in the local state before copying/exporting it independently")
+    q = audit.add_parser("anchors", help="List locally retained checkpoint anchors")
+    q.add_argument("--after", type=int, default=0)
+    q.add_argument("--limit", type=int, default=20)
     q = audit.add_parser("export")
     q.add_argument("--output", type=Path, required=True)
     q.add_argument("--state", type=Path, help="Offline read-only export from a stopped or full daemon database")
@@ -234,8 +258,18 @@ def handle(args) -> int:
                 output({"proposed_contract": contract, "next": "Inspect this contract, then repeat with --confirm using the administrative socket."})
                 return 2
             output(call(args.admin_socket, "run_open", {"uid": args.uid, "session": args.session, "contract": contract, "confirmed": True}))
-        else:
-            output(call(args.socket, "run_get" if args.run_command == "show" else "run_close", {"run": args.run, "session": args.session}))
+        elif args.run_command in ("show", "close", "history"):
+            operation = {"show": "run_get", "close": "run_close", "history": "run_history"}[args.run_command]
+            data = {"run": args.run, "session": args.session}
+            if args.run_command == "history":
+                data["limit"] = args.limit
+            output(call(args.socket, operation, data))
+        elif args.run_command == "renew":
+            output(call(args.admin_socket, "lease_renew", {"run": args.run, "seconds": args.seconds, "reason": args.reason}))
+        elif args.run_command == "quarantine":
+            output(call(args.admin_socket, "run_quarantine", {"run": args.run, "reason": args.reason}))
+        elif args.run_command == "recover":
+            output(call(args.admin_socket, "run_recover", {"run": args.run, "mode": args.mode, "seconds": args.seconds, "reason": args.reason}))
     elif cmd in ("prepare", "exec", "simulate"):
         action = {"argv": argv_value(args.argv), "cwd": str(Path(args.cwd).resolve()), "inputs": [str(Path(p).resolve()) for p in args.input]}
         data = {"run": args.run, "session": args.session, "action": action}
@@ -263,6 +297,13 @@ def handle(args) -> int:
         output(call(args.admin_socket, operation, data))
     elif cmd == "event":
         output(call(args.socket, "event", {"run": args.run, "session": args.session, "label": args.label}))
+    elif cmd == "trusted-event":
+        data = {"run": args.run, "label": args.label, "source": args.source}
+        if args.session:
+            data["session"] = args.session
+        if args.reason:
+            data["reason"] = args.reason
+        output(call(args.admin_socket if args.source == "admin" else args.socket, "trusted_event", data))
     elif cmd == "checkpoint":
         output(call(args.admin_socket, "checkpoint", {"run": args.run, "mode": args.mode, "reason": args.reason}))
     elif cmd == "audit":
@@ -285,6 +326,10 @@ def handle(args) -> int:
             checkpoint = call(args.admin_socket, "audit_checkpoint")
             write_new(args.output, canonical(checkpoint) + b'\n')
             output({"checkpoint": str(args.output), "head": checkpoint["checkpoint"]["head"]})
+        elif args.audit_command == "anchor":
+            output(call(args.admin_socket, "audit_anchor"))
+        elif args.audit_command == "anchors":
+            output(call(args.admin_socket, "audit_anchors", {"after": args.after, "limit": args.limit}))
         else:
             if args.state:
                 from .store import export_offline

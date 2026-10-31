@@ -38,7 +38,8 @@ def claude(event: dict, socket: str, run: str, session: str, wrapper: str, shell
         tool = event.get("tool_name", "")
         require(isinstance(tool, str) and 1 <= len(tool) <= 256, "hook_tool", "Missing or invalid tool name; no command is authorized.")
         if tool in ("WebFetch", "WebSearch") or tool.startswith("mcp__"):
-            call(socket, "event", {**base, "label": "untrusted_mcp" if tool.startswith("mcp__") else "untrusted_web"})
+            call(socket, "trusted_event", {**base, "label": "untrusted_mcp" if tool.startswith("mcp__") else "untrusted_web",
+                  "source": "tool_gateway", "reason": "adapter denied unsupported non-shell tool effects"})
             return verdict("deny", "Run tightened after an untrusted-input request. This adapter cannot enforce non-shell tool effects; use a separately authorized integration.")
         require(tool == "Bash", "tool_unsupported", "This adapter supports Bash actions only; route filesystem operations through the controlled execution API.")
         tool_input = event.get("tool_input")

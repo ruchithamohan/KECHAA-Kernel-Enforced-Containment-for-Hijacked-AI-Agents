@@ -123,6 +123,12 @@ class Store:
           CREATE INDEX IF NOT EXISTS grant_run ON grants(run, state);
           CREATE TABLE IF NOT EXISTS audit (seq INTEGER PRIMARY KEY, record BLOB NOT NULL,
             hash TEXT NOT NULL, signature TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS history (seq INTEGER PRIMARY KEY AUTOINCREMENT,
+            run TEXT NOT NULL REFERENCES runs(id), time_ms INTEGER NOT NULL,
+            kind TEXT NOT NULL, body BLOB NOT NULL, risk INTEGER NOT NULL);
+          CREATE INDEX IF NOT EXISTS history_run ON history(run, seq);
+          CREATE TABLE IF NOT EXISTS anchors (id INTEGER PRIMARY KEY AUTOINCREMENT,
+            time_ms INTEGER NOT NULL, checkpoint BLOB NOT NULL, signature TEXT NOT NULL);
         """)
         version = self.meta("schema")
         require(version in (None, "1"), "state_schema", "Unsupported database schema; use a reviewed migration before upgrading.")
@@ -184,6 +190,43 @@ class Store:
         self.set_meta("audit_head", hashed)
         self.set_meta("audit_sequence", str(seq))
         return {"sequence": seq, "hash": hashed}
+
+    def history(self, run: str, kind: str, body: dict, risk: int = 0) -> int:
+        require(self.db.in_transaction, "history_transaction", "History events must share the state transaction.", "operational_error")
+        require(isinstance(run, str) and 1 <= len(run) <= 96 and isinstance(kind, str) and 1 <= len(kind) <= 96,
+                "history_format", "Invalid history event identity.", "operational_error")
+        require(isinstance(risk, int) and 0 <= risk <= 100, "history_risk", "History risk must be bounded.", "operational_error")
+        raw = canonical(body)
+        require(len(raw) <= 32768, "history_size", "History event exceeds the bounded event size.", "operational_error")
+        cursor = self.db.execute("INSERT INTO history(run,time_ms,kind,body,risk) VALUES(?,?,?,?,?)",
+                                 (run, time.time_ns() // 1000000, kind, raw, risk))
+        # Retain the most recent 512 trusted observations per run. Audit records
+        # remain the tamper-evident permanent summary; this bounded table is the
+        # online decision cache and must never fail open on read errors.
+        self.db.execute("DELETE FROM history WHERE run=? AND seq NOT IN (SELECT seq FROM history WHERE run=? ORDER BY seq DESC LIMIT 512)",
+                        (run, run))
+        return int(cursor.lastrowid)
+
+    def history_for_run(self, run: str, limit: int = 64) -> list[dict]:
+        require(isinstance(run, str) and 1 <= len(run) <= 96, "history_run", "Invalid run id.", "invalid_request")
+        require(isinstance(limit, int) and 1 <= limit <= 512, "history_limit", "Invalid history limit.", "invalid_request")
+        rows = self.db.execute("SELECT seq,time_ms,kind,body,risk FROM history WHERE run=? ORDER BY seq DESC LIMIT ?", (run, limit)).fetchall()
+        return [{"seq": row["seq"], "time_ms": row["time_ms"], "kind": row["kind"],
+                 "body": decode(row["body"]), "risk": row["risk"]} for row in rows][::-1]
+
+    def anchor(self, uid: int) -> dict:
+        document = self.checkpoint(uid)
+        with self.transaction():
+            self.db.execute("INSERT INTO anchors(time_ms,checkpoint,signature) VALUES(?,?,?)",
+                            (time.time_ns() // 1000000, canonical(document["checkpoint"]), document["signature"]))
+            self.event("audit_anchor_created", {"head": document["checkpoint"]["head"],
+                        "sequence": document["checkpoint"]["sequence"]}, uid)
+        return document
+
+    def anchors(self, after: int = 0, limit: int = 20) -> list[dict]:
+        rows = self.db.execute("SELECT id,time_ms,checkpoint,signature FROM anchors WHERE id>? ORDER BY id LIMIT ?", (after, limit)).fetchall()
+        return [{"id": row["id"], "time_ms": row["time_ms"], "checkpoint": decode(row["checkpoint"]),
+                 "signature": row["signature"]} for row in rows]
 
     def verify(self) -> dict:
         head, count = ZERO, 0
