@@ -282,6 +282,11 @@ class Server:
             if result.get("terminate_active"):
                 await self.stop_required(result["run"])
             return result
+        if operation == "tool_request":
+            result = engine.tool_request(data, uid)
+            if result.get("terminate_active"):
+                await self.stop_required(result["run"])
+            return result
         if operation == "lease_renew":
             result = engine.renew_lease(data, uid, administrative)
             if result.get("terminate_active"):

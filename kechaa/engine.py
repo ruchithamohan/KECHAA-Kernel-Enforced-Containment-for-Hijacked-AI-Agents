@@ -197,6 +197,50 @@ class Engine:
                              "response": "Active action must terminate; future actions require a new envelope."}, uid)
         return {"run": row["id"], "mode": mode, "state": body.get("state", "active"), "changed": True, "terminate_active": True}
 
+    def tool_request(self, data: dict, uid: int) -> dict:
+        fields(data, {"run", "session", "tool", "effects"})
+        row = self.run(data["run"], data["session"], uid)
+        require(isinstance(data["tool"], str) and 1 <= len(data["tool"]) <= 128, "tool_name", "Invalid tool name.", "invalid_request")
+        effects = fields(data["effects"], set(), {"read", "write", "network", "kind"}, where="tool effects")
+        tool = data["tool"]
+        body = decode(row["body"])
+        contract = body["contract"]
+        decision, reason, risk = "allow", "Tool effects are within the confirmed run contract.", row["score"]
+        reads = [path_string(path) for path in effects.get("read", [])]
+        writes = [path_string(path) for path in effects.get("write", [])]
+        network = effects.get("network", "offline")
+        require(isinstance(effects.get("read", []), list) and isinstance(effects.get("write", []), list),
+                "tool_effects", "Tool read/write effects must be path lists.", "invalid_request")
+        require(network in ("offline", "external"), "tool_network", "Tool network effect must be offline or external.", "invalid_request")
+        sensitive = set(self.policy.document["sensitive"])
+        home = pwd.getpwuid(uid).pw_dir.rstrip("/")
+        sensitive |= {home + suffix for suffix in ("/.ssh", "/.aws", "/.azure", "/.kube", "/.config/gcloud", "/.claude", "/.codex")}
+        if tool in ("WebFetch", "WebSearch") or tool.startswith("mcp__") or network == "external":
+            decision, reason, risk = "deny", "External web/MCP/network tool effects are unsupported by this offline profile and fail closed.", min(100, row["score"] + 20)
+        elif any(any(within(path, item) or within(item, path) for item in sensitive) for path in reads + writes):
+            decision, reason, risk = "deny", "Tool effects overlap sensitive credential/configuration paths.", min(100, row["score"] + 60)
+        elif any(not any(within(path, root) for root in contract["roots"]) for path in reads + writes):
+            decision, reason, risk = "deny", "Tool effects exceed the confirmed run roots.", min(100, row["score"] + 20)
+        elif writes and (not contract["write"] or row["mode"] != "normal"):
+            decision, reason = "ask", "Write-capable tool requires administrator approval or recovery in the current posture."
+        with self.store.transaction():
+            self.store.history(row["id"], "tool_request", {"tool": tool, "effects": effects, "decision": decision, "reason": reason}, risk)
+            if decision == "deny":
+                event = "untrusted_mcp" if tool.startswith("mcp__") else "untrusted_web" if tool in ("WebFetch", "WebSearch") or network == "external" else "tool_denied"
+                mode, points, posture_reason = self._risk_transition(row, body, event, "tool_gateway")
+                body["labels"] = sorted(set(body.get("labels", [])) | {event})
+                body["posture"] = mode
+                if mode == "quarantined":
+                    body["state"] = "quarantined"
+                body["trusted_signals"] = (body.get("trusted_signals", []) + [{"signal": event, "source": "tool_gateway", "points": points, "reason": posture_reason}])[-64:]
+                self.store.db.execute("UPDATE runs SET body=?,mode=?,revision=revision+1,score=MIN(100,score+?) WHERE id=?",
+                                      (canonical(body), mode, points, row["id"]))
+                self.store.db.execute("UPDATE grants SET state='revoked_posture' WHERE run=? AND state IN ('issued','pending')", (row["id"],))
+                self.store.event("tool_request_denied", {"run": row["id"], "tool": tool, "reason": reason, "mode": mode}, uid)
+                return {"decision": decision, "reason": reason, "run": row["id"], "mode": mode, "terminate_active": True}
+            self.store.event("tool_request_reviewed", {"run": row["id"], "tool": tool, "decision": decision}, uid)
+        return {"decision": decision, "reason": reason, "run": row["id"], "mode": row["mode"], "terminate_active": False}
+
     def quarantine(self, data: dict, uid: int, administrative: bool) -> dict:
         self.admin(uid, administrative)
         fields(data, {"run", "reason"})

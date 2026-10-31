@@ -126,6 +126,13 @@ def parser() -> argparse.ArgumentParser:
     q.add_argument("--label", choices=("untrusted_web", "untrusted_repository", "untrusted_mcp", "credential_exposure", "tool_denied", "bypass_attempt", "policy_violation", "agent_compromise"), required=True)
     q.add_argument("--source", choices=("supervisor", "tool_gateway", "kernel", "admin", "client_report"), required=True)
     q.add_argument("--reason")
+    q = sub.add_parser("tool-check", help="Trusted tool gateway authorization check for non-shell tool effects")
+    q.add_argument("--run", required=True)
+    q.add_argument("--session", required=True)
+    q.add_argument("--tool", required=True)
+    q.add_argument("--read", action="append", default=[])
+    q.add_argument("--write", action="append", default=[])
+    q.add_argument("--network", choices=("offline", "external"), default="offline")
     q = sub.add_parser("checkpoint", help="Administrator-only posture change; preserves labels and audit history")
     q.add_argument("--run", required=True)
     q.add_argument("--mode", choices=("normal", "guarded", "lockdown"), required=True)
@@ -304,6 +311,10 @@ def handle(args) -> int:
         if args.reason:
             data["reason"] = args.reason
         output(call(args.admin_socket if args.source == "admin" else args.socket, "trusted_event", data))
+    elif cmd == "tool-check":
+        output(call(args.socket, "tool_request", {"run": args.run, "session": args.session, "tool": args.tool,
+               "effects": {"read": [str(Path(p).resolve()) for p in args.read],
+                           "write": [str(Path(p).resolve()) for p in args.write], "network": args.network}}))
     elif cmd == "checkpoint":
         output(call(args.admin_socket, "checkpoint", {"run": args.run, "mode": args.mode, "reason": args.reason}))
     elif cmd == "audit":

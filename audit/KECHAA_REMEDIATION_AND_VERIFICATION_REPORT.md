@@ -17,6 +17,7 @@ This remediation pass added concrete security capabilities to KECHAA's control p
 - Local audit checkpoint anchoring.
 - CLI and Local API operations for history, leases, quarantine, recovery, trusted events, and anchors.
 - Claude adapter tightening through `trusted_event` for unsupported MCP/web tools.
+- Trusted `tool_request` gateway checks for non-shell tool effects, with fail-closed external network/MCP/web handling.
 - A non-destructive Linux containment certification harness scaffold.
 - Automated unit tests for history, lease expiry, quarantine/recovery, trusted events, and audit anchors.
 
@@ -45,9 +46,9 @@ Changed files:
 
 - `kechaa/store.py`: added bounded trusted `history` table, `anchors` table, history append/query helpers, and local audit anchor helpers.
 - `kechaa/engine.py`: added lease validation, state/posture fields, history-aware decision checks, trusted posture events, quarantine/recovery, lease renewal, and history recording for grants/actions/expiry.
-- `kechaa/daemon.py`: exposed `run_history`, `trusted_event`, `lease_renew`, `run_quarantine`, `run_recover`, `audit_anchor`, and `audit_anchors` Local API operations.
-- `kechaa/cli.py`: added CLI commands for run history, lease renewal, quarantine, recovery, trusted events, and audit anchors.
-- `kechaa/harness.py`: changed MCP/web denials to submit trusted tool-gateway posture events.
+- `kechaa/daemon.py`: exposed `run_history`, `tool_request`, `trusted_event`, `lease_renew`, `run_quarantine`, `run_recover`, `audit_anchor`, and `audit_anchors` Local API operations.
+- `kechaa/cli.py`: added CLI commands for run history, lease renewal, quarantine, recovery, trusted events, tool checks, and audit anchors.
+- `kechaa/harness.py`: changed MCP/web denials to use the trusted tool gateway.
 - `tools/certify_linux.py`: added non-destructive Linux certification plan/preflight harness.
 - `tests/test_security_control_plane.py`: added seven security-control-plane tests.
 - `tests/__init__.py`: added test discovery marker.
@@ -58,11 +59,11 @@ Changed files:
 |---|---|---|---|---|---|
 | #1 | Health now reports supervised-boundary requirement; history/quarantine supports supervised sessions. | No true whole-agent bypass e2e. | Not satisfied. | No supported agent launcher preventing unwrapped execution exists. | Partially addressed, open. |
 | #2 | Added `tools/certify_linux.py` plan/preflight. | macOS preflight correctly blocks. | Not satisfied. | No privileged Linux VM e2e enforcement suite yet. | Partially addressed, open. |
-| #3 | Harness sends trusted tool-gateway events for MCP/web denials. | Unit tests cover trusted event quarantine; no MCP e2e. | Partially satisfied for fail-closed unsupported tool posture. | No real effect contracts for MCP/file/browser tools. | Partially addressed, open. |
+| #3 | Added `tool_request` trusted gateway and routed harness MCP/web denials through it. | `test_tool_gateway_denies_external_mcp_and_tightens`; CLI help smoke. | Partially satisfied for fail-closed MCP/web/external network and in-scope file checks. | No real MCP server protocol/effect-contract execution integration. | Partially addressed, open. |
 | #4 | Added run leases, lease validation, renewal, expiry closure. | `test_lease_expiry_closes_run_and_revokes`. | Satisfied for control-plane leases. | Whole-agent process lease requires issue #1. | Partially resolved. |
 | #5 | Added trusted posture state transitions and trusted event API. | `test_trusted_event_quarantines_without_agent_cooperation`. | Partially satisfied. | Independent observation depends on future supervised/tool gateway components. | Partially resolved. |
 | #6 | Added quarantine and recovery APIs/states. | `test_quarantine_blocks_and_recovery_requires_admin`. | Satisfied for run/action control plane. | Full-agent process-tree quarantine depends on issue #1. | Partially resolved. |
-| #7 | No production multi-agent isolation implemented. | None. | Not satisfied. | Single active action backend remains. | Open. |
+| #7 | Added tests proving run/session binding prevents cross-agent history/tool access through the Local API. | `test_cross_agent_session_cannot_read_or_modify_other_run`. | Partially satisfied for control-plane identity isolation. | Linux resource/process/workspace isolation for concurrent agents remains incomplete. | Partially addressed, open. |
 | #8 | Added local audit anchors and anchor listing. | `test_audit_anchor_is_persisted_and_listed`; diagnostic API smoke. | Partially satisfied. | No remote/append-only external sink yet; effect stream incomplete. | Partially resolved. |
 | #9 | Added certification scenario plan, not full demo lab. | Certification plan/preflight smoke. | Not satisfied. | No attack-and-defense lab. | Open. |
 | #10 | Added sensitive argv-path history-aware denial. | `test_sensitive_argv_path_is_denied_and_recorded`; repeated denial test. | Partially satisfied. | No broad transitive provenance capture yet. | Partially addressed, open. |
@@ -79,12 +80,14 @@ Implemented mechanisms:
 
 - `history` table stores ordered, timestamped, bounded events per run.
 - `Engine.prepare()` records `policy_denied` and `grant_prepared` events.
+- `Engine.tool_request()` records trusted tool-gateway decisions for non-shell effects.
 - `Engine.consume()` records `grant_consumed`.
 - `Engine.finish()` records `action_finished`.
 - `Engine.expire_runs()` records lease/run expiry.
 - `_history_decision()` denies otherwise-allowed actions after repeated recent denials and denies sensitive path references in argv.
 - Guarded history posture upgrades allow decisions to `ask` where appropriate.
 - Quarantined state blocks `run()` before authorization.
+- External MCP/web/network tool requests fail closed and tighten posture through trusted history.
 
 Security behavior:
 
@@ -143,14 +146,19 @@ Verified by tests:
 | SEC-005 | #4 | Lease/run expires. | Run closes and revokes. | Closed after expiry. | PASS |
 | SEC-006 | #5/#6 | Trusted supervisor compromise event. | Quarantine and terminate active action requested. | Quarantined. | PASS |
 | SEC-007 | #8 | Local audit anchor. | Anchor stored and listed. | Passed. | PASS |
-| SEC-008 | #2 | Linux kernel certification on macOS. | Refuse to certify. | Returned ready=false, exit 3. | BLOCKED as expected |
+| SEC-008 | #3 | External MCP tool request. | Deny, tighten posture, record tool history. | Denied and mode became guarded. | PASS |
+| SEC-009 | #3 | In-scope file-read tool request. | Allow. | Allowed. | PASS |
+| SEC-010 | #3/#5 | Guarded session write-capable tool request. | Require approval, not silent allow. | Returned `ask`. | PASS |
+| SEC-011 | #7 | Agent B attempts Agent A history/tool access. | Reject by run/session binding. | `run_binding`. | PASS |
+| SEC-012 | #4/#5 | Engine restart after denial. | History persists and remains queryable. | Persisted `policy_denied`. | PASS |
+| SEC-013 | #2 | Linux kernel certification on macOS. | Refuse to certify. | Returned ready=false, exit 3. | BLOCKED as expected |
 
 ## I. Regression Testing Results
 
 Executed:
 
 - `python -m compileall -q kechaa tools tests` — PASS.
-- `python -m unittest discover -v` — 7 tests PASS.
+- `python -m unittest discover -v` — 12 tests PASS.
 - `python -m kechaa version` — PASS.
 - `python -m kechaa policy validate examples/linux-offline.yaml` — PASS.
 - Diagnostic console health smoke — PASS.
@@ -166,7 +174,7 @@ Measured qualitatively in unit tests and CLI smoke:
 - History retention is bounded to 512 records per run.
 - History event bodies are bounded to 32 KiB.
 - Audit records remain bounded to 64 KiB.
-- Unit test runtime: approximately 1.2 seconds for seven tests.
+- Unit test runtime: approximately 1.3 seconds for twelve tests.
 - No native Linux performance measurement was performed.
 
 Potential overhead:
@@ -179,8 +187,8 @@ Potential overhead:
 
 - Whole-agent containment is not complete; issue #1 remains open.
 - Linux kernel enforcement was not executed in this macOS environment; issue #2 remains open.
-- MCP/browser/file tool effect contracts are not implemented; issue #3 remains open.
-- Multi-agent isolation remains incomplete; issue #7 remains open.
+- MCP/browser/file tool effect execution contracts are not implemented; issue #3 remains open despite trusted gateway checks.
+- Multi-agent kernel/resource isolation remains incomplete; issue #7 remains open despite control-plane identity isolation tests.
 - Demo lab remains incomplete; issue #9 remains open.
 - Transitive input provenance remains partial; issue #10 remains open.
 - Audit anchoring is local-only; external append-only anchoring remains needed.
@@ -224,8 +232,8 @@ Still, serious market differentiation requires:
 
 1. Mandatory whole-agent containment not implemented.
 2. Linux containment not certified through reproducible VM tests.
-3. MCP/non-shell tools not enforceable beyond fail-closed posture event.
-4. Multi-agent isolation incomplete.
+3. MCP/non-shell tools have trusted preflight decisions, but no full protocol/effect-contract execution integration.
+4. Multi-agent control-plane isolation improved; kernel/resource/workspace isolation incomplete.
 5. No CI/CD pipeline.
 6. No production deployment/service profile.
 7. No external audit anchor sink.

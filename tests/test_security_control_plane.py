@@ -121,6 +121,52 @@ class SecurityControlPlaneTests(unittest.TestCase):
         self.assertEqual(len(anchors), 1)
         self.assertEqual(anchors[0]["checkpoint"]["head"], anchor["checkpoint"]["head"])
 
+    def test_tool_gateway_denies_external_mcp_and_tightens(self):
+        run = self._open_run()
+        result = self.engine.tool_request({"run": run["run"], "session": "session", "tool": "mcp__evil__read",
+                                           "effects": {"network": "external", "read": [], "write": []}}, self.uid)
+        self.assertEqual(result["decision"], "deny")
+        self.assertTrue(result["terminate_active"])
+        row = self.engine.run(run["run"], "session", self.uid)
+        self.assertEqual(row["mode"], "guarded")
+        history = self.store.history_for_run(run["run"], 10)
+        self.assertEqual(history[-1]["kind"], "tool_request")
+
+    def test_tool_gateway_allows_in_scope_file_read(self):
+        run = self._open_run()
+        target = self.root / "allowed.txt"
+        target.write_text("ok")
+        result = self.engine.tool_request({"run": run["run"], "session": "session", "tool": "FileRead",
+                                           "effects": {"network": "offline", "read": [str(target)], "write": []}}, self.uid)
+        self.assertEqual(result["decision"], "allow")
+
+    def test_tool_gateway_requires_approval_for_guarded_write(self):
+        run = self._open_run()
+        self.engine.trusted_event({"run": run["run"], "session": "session", "label": "untrusted_web", "source": "tool_gateway"}, self.uid)
+        result = self.engine.tool_request({"run": run["run"], "session": "session", "tool": "FileWrite",
+                                           "effects": {"network": "offline", "read": [], "write": [str(self.root / "out.txt")]}}, self.uid)
+        self.assertEqual(result["decision"], "ask")
+
+    def test_cross_agent_session_cannot_read_or_modify_other_run(self):
+        run_a = self._open_run("agent-a")
+        run_b = self._open_run("agent-b")
+        with self.assertRaises(KechaaError) as ctx:
+            self.engine.history({"run": run_a["run"], "session": "agent-b"}, self.uid)
+        self.assertEqual(ctx.exception.code, "run_binding")
+        with self.assertRaises(KechaaError) as ctx:
+            self.engine.tool_request({"run": run_a["run"], "session": "agent-b", "tool": "FileRead",
+                                      "effects": {"network": "offline", "read": [str(self.root)], "write": []}}, self.uid)
+        self.assertEqual(ctx.exception.code, "run_binding")
+        self.assertEqual(self.engine.run(run_b["run"], "agent-b", self.uid)["id"], run_b["run"])
+
+    def test_history_persists_across_engine_restart(self):
+        run = self._open_run()
+        with self.assertRaises(KechaaError):
+            self.engine.prepare({"run": run["run"], "session": "session", "action": {"argv": ["/bin/cat", str(Path.home() / ".ssh" / "key")], "cwd": str(self.root)}}, self.uid)
+        self.engine = Engine(self.store, None, True, self.uid)
+        history = self.store.history_for_run(run["run"], 10)
+        self.assertEqual(history[-1]["kind"], "policy_denied")
+
 
 if __name__ == "__main__":
     unittest.main()
