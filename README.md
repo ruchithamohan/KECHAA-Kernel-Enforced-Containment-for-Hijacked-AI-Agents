@@ -5,15 +5,17 @@ root-owned Python daemon issues single-use signed grants, then starts the action
 under Linux filesystem, syscall, namespace and process-lifetime restrictions.
 Thin adapters share the same YAML policy engine and local API.
 
-**KECHAA 0.2.0a1 is an experimental Linux containment alpha, not production-ready.** Actual ARM64 Linux VM
-operation now demonstrates offline command and package workflows, filesystem and
-network denials, approval binding, descendant cleanup and daemon-loss handling.
-The [operational report](docs/completion.md) records failures found and corrected,
-measurements, and remaining blockers. No readiness percentage is claimed.
+**KECHAA 0.2.0a1 is an experimental Linux containment alpha, not production-ready.**
+PR #11 adds supervised agent launch, history-aware controls, MCP effect-contract
+authorization and a fail-closed Linux certification harness. The current
+certification gate remains open: LC-001 through LC-013 must still be executed in
+a disposable Linux VM before KECHAA claims Linux whole-agent containment. The
+[operational report](docs/completion.md) is historical validation context; the
+current gate is tracked in `audit/KECHAA_LINUX_CERTIFICATION_READINESS.md`.
 
 | Platform | Available | Execution boundary |
 |---|---|---|
-| Linux ARM64 | CLI, daemon, policies, grants, audit and experimental launcher | Exercised on Debian 13 / Linux 6.12.113; dedicated workspace filesystem required |
+| Linux ARM64 | CLI, daemon, policies, grants, audit and experimental launcher | Target platform; LC-001..LC-013 certification still pending in a disposable VM |
 | Linux x86_64 | Same implementation and syscall table | Kernel execution remains UNVERIFIED |
 | macOS | CLI, policies, diagnostic grant/state/audit operations | Native protected execution disabled; Linux VM operation is not native macOS containment |
 
