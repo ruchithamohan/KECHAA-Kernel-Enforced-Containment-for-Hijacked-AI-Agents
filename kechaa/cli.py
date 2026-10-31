@@ -109,6 +109,18 @@ def parser() -> argparse.ArgumentParser:
         if name != "prepare":
             q.add_argument("--grant", required=True)
         q.add_argument("argv", nargs=argparse.REMAINDER)
+    agent = sub.add_parser("agent", help="Mandatory whole-agent launcher; supported agents must enter through this boundary").add_subparsers(dest="agent_command", required=True)
+    for name in ("prepare", "launch", "simulate"):
+        q = agent.add_parser(name, help={"prepare": "Inspect a supervised whole-agent launch envelope",
+                                         "launch": "Consume a supervised grant and launch through the Linux containment worker",
+                                         "simulate": "DIAGNOSTIC ONLY: consume a supervised grant without executing"}[name])
+        q.add_argument("--run", required=True)
+        q.add_argument("--session", required=True)
+        q.add_argument("--cwd", required=True)
+        q.add_argument("--input", action="append", default=[])
+        if name != "prepare":
+            q.add_argument("--grant", required=True)
+        q.add_argument("argv", nargs=argparse.REMAINDER)
     grant = sub.add_parser("grant", help="Administrator-only approval, inspection and revocation").add_subparsers(dest="grant_command", required=True)
     for name in ("show", "approve", "revoke"):
         q = grant.add_parser(name)
@@ -293,6 +305,25 @@ def handle(args) -> int:
                                   "cleanup": result.get("cleanup", "complete"),
                                   "initialization_error": result.get("initialization_error"),
                                   "next": "Inspect grant/audit state and daemon readiness before requesting a new grant."}), file=sys.stderr)
+            code = result["exit_code"]
+            return code if 0 <= code <= 255 else 128 + min(127, abs(code))
+        output(result)
+    elif cmd == "agent":
+        action = {"argv": argv_value(args.argv), "cwd": str(Path(args.cwd).resolve()), "inputs": [str(Path(p).resolve()) for p in args.input]}
+        data = {"run": args.run, "session": args.session, "action": action, "supervised": True}
+        if args.agent_command != "prepare":
+            data["grant"] = args.grant
+        result = call(args.socket, "execute" if args.agent_command == "launch" else args.agent_command.replace("agent_", ""), data,
+                      timeout=620 if args.agent_command == "launch" else 15)
+        if args.agent_command == "launch":
+            sys.stdout.buffer.write(base64.b64decode(result["stdout"]))
+            sys.stderr.buffer.write(base64.b64decode(result["stderr"]))
+            if result["termination"] != "exited" or not result["controls_ready"] or "cleanup" in result:
+                sys.stderr.buffer.flush()
+                print(json.dumps({"kechaa": "supervised_agent_did_not_complete_normally", "grant": result["grant"],
+                                  "termination": result["termination"], "controls_ready": result["controls_ready"],
+                                  "cleanup": result.get("cleanup", "complete"),
+                                  "initialization_error": result.get("initialization_error")}), file=sys.stderr)
             code = result["exit_code"]
             return code if 0 <= code <= 255 else 128 + min(127, abs(code))
         output(result)

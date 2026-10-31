@@ -301,9 +301,11 @@ class Engine:
         return decision
 
     def prepare(self, data: dict, uid: int) -> dict:
-        fields(data, {"run", "session", "action"})
+        fields(data, {"run", "session", "action"}, {"supervised"})
         row = self.run(data["run"], data["session"], uid)
         action = effects.request(data["action"])
+        supervised = data.get("supervised", False)
+        require(type(supervised) is bool, "supervised_flag", "Supervised launch marker must be boolean.", "invalid_request")
         contract = decode(row["body"])["contract"]
         require(any(within(action["cwd"], r) for r in contract["roots"]), "contract_scope", "Working directory exceeds the confirmed task contract.")
         require(action["argv"][0] in contract["executables"], "contract_executable", "Executable is outside the confirmed task contract.")
@@ -356,6 +358,14 @@ class Engine:
                 "issued_ms": now, "expires_ms": expires, "profile": self.profile,
                 "action": action, "action_digest": digest(action), "effects": envelope, "effects_digest": digest(envelope),
                 "inputs": identified, "inputs_digest": digest(identified), "decision": decision["decision"]}
+        if supervised:
+            body["supervised_agent"] = True
+            body["boundary"] = {"schema": 1, "kind": "whole-agent-process-tree", "mandatory": not self.diagnostic,
+                                "run": row["id"], "session": data["session"],
+                                "mechanisms": ["single-use grant", "lease-bound run", "cgroup-v2", "pid namespace",
+                                               "mount namespace", "network namespace", "Landlock", "seccomp", "credential drop"],
+                                "coverage": "entry process and descendants launched by the KECHAA Linux worker",
+                                "unsupported": "processes started outside the KECHAA launcher are outside the claimed supported boundary"}
         signature = self.store.sign("KECHAA-GRANT-1", body)
         state = "pending" if decision["decision"] == "ask" else "issued"
         with self.store.transaction():
@@ -363,14 +373,17 @@ class Engine:
             self.store.history(row["id"], "grant_prepared", {"grant": grant_id, "decision": decision["decision"],
                                "action_digest": body["action_digest"], "effects_digest": body["effects_digest"],
                                "history": decision.get("history", {})}, row["score"])
+            if supervised:
+                self.store.history(row["id"], "supervised_agent_prepared", {"grant": grant_id, "boundary": body["boundary"]}, row["score"])
             self.store.event("grant_prepared" if state == "pending" else "grant_issued", {
                 "grant": grant_id, "run": row["id"], "state": state, "policy": self.policy.version,
                 "action_digest": body["action_digest"], "effects_digest": body["effects_digest"],
                 "inputs_digest": body["inputs_digest"], "effects": envelope, "expires_ms": body["expires_ms"],
-                "matched_rules": decision["matched"]}, uid)
+                "matched_rules": decision["matched"], "supervised_agent": supervised}, uid)
         self.deadlines[grant_id] = time.monotonic() + (expires - now) / 1000
         return {"grant": grant_id, "state": state, "decision": decision["decision"], "summary": decision,
                 "action": action, "inputs": identified, "expires_ms": body["expires_ms"], "profile": self.profile,
+                "supervised_agent": supervised, "boundary": body.get("boundary"),
                 "next": "Administrator: grant approve --grant <id> after reviewing grant show." if state == "pending" else "Present the exact action to exec; grants are single-use."}
 
     def grant(self, grant_id: str) -> tuple[dict, dict]:
@@ -403,9 +416,13 @@ class Engine:
         return {"grant": body["id"], "state": "issued"}
 
     def consume(self, data: dict, uid: int, simulation: bool) -> dict:
-        fields(data, {"grant", "run", "session", "action"})
+        fields(data, {"grant", "run", "session", "action"}, {"supervised"})
         row, body = self.grant(data["grant"])
         run = self.run(data["run"], data["session"], uid)
+        supervised = data.get("supervised", False)
+        require(type(supervised) is bool, "supervised_flag", "Supervised launch marker must be boolean.", "invalid_request")
+        require(supervised == bool(body.get("supervised_agent", False)), "grant_binding",
+                "A supervised agent grant can only be consumed through the supervised launcher, and ordinary grants cannot be upgraded at launch.")
         require(body["run"] == run["id"] and body["session"] == data["session"] and body["uid"] == uid,
                 "grant_binding", "Grant is bound to a different run, session, or OS user.")
         self.valid_time(body)
@@ -425,8 +442,9 @@ class Engine:
         with self.store.transaction():
             cursor = self.store.db.execute("UPDATE grants SET state=? WHERE id=? AND state='issued'", ("simulated" if simulation else "adopted", body["id"]))
             require(cursor.rowcount == 1, "grant_replay", "Grant already consumed.")
-            self.store.history(body["run"], "grant_consumed", {"grant": body["id"], "simulation": simulation}, 0)
-            self.store.event("grant_simulated" if simulation else "grant_adopted", {"grant": body["id"], "run": body["run"], "executed": False, "effects_digest": body["effects_digest"]}, uid)
+            self.store.history(body["run"], "grant_consumed", {"grant": body["id"], "simulation": simulation, "supervised_agent": supervised}, 0)
+            self.store.event("grant_simulated" if simulation else "grant_adopted", {"grant": body["id"], "run": body["run"], "executed": False,
+                             "effects_digest": body["effects_digest"], "supervised_agent": supervised}, uid)
         return body
 
     def finish(self, body: dict, result: dict) -> None:

@@ -167,6 +167,35 @@ class SecurityControlPlaneTests(unittest.TestCase):
         history = self.store.history_for_run(run["run"], 10)
         self.assertEqual(history[-1]["kind"], "policy_denied")
 
+    def test_supervised_agent_grant_records_boundary(self):
+        run = self._open_run()
+        result = self.engine.prepare({"run": run["run"], "session": "session", "supervised": True,
+                                      "action": {"argv": ["/bin/echo", "agent"], "cwd": str(self.root)}}, self.uid)
+        self.assertTrue(result["supervised_agent"])
+        self.assertEqual(result["boundary"]["kind"], "whole-agent-process-tree")
+        history = self.store.history_for_run(run["run"], 10)
+        self.assertIn("supervised_agent_prepared", [item["kind"] for item in history])
+
+    def test_supervised_agent_grant_cannot_be_consumed_as_ordinary_action(self):
+        run = self._open_run()
+        result = self.engine.prepare({"run": run["run"], "session": "session", "supervised": True,
+                                      "action": {"argv": ["/bin/echo", "agent"], "cwd": str(self.root)}}, self.uid)
+        with self.assertRaises(KechaaError) as ctx:
+            self.engine.consume({"grant": result["grant"], "run": run["run"], "session": "session", "action": result["action"]}, self.uid, True)
+        self.assertEqual(ctx.exception.code, "grant_binding")
+        consumed = self.engine.consume({"grant": result["grant"], "run": run["run"], "session": "session",
+                                        "supervised": True, "action": result["action"]}, self.uid, True)
+        self.assertTrue(consumed["supervised_agent"])
+
+    def test_ordinary_grant_cannot_be_upgraded_to_supervised_agent(self):
+        run = self._open_run()
+        result = self.engine.prepare({"run": run["run"], "session": "session",
+                                      "action": {"argv": ["/bin/echo", "agent"], "cwd": str(self.root)}}, self.uid)
+        with self.assertRaises(KechaaError) as ctx:
+            self.engine.consume({"grant": result["grant"], "run": run["run"], "session": "session",
+                                 "supervised": True, "action": result["action"]}, self.uid, True)
+        self.assertEqual(ctx.exception.code, "grant_binding")
+
 
 if __name__ == "__main__":
     unittest.main()

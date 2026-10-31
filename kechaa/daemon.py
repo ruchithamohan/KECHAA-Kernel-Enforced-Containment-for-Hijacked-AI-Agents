@@ -133,7 +133,7 @@ class Server:
 
     async def execute(self, data: dict, uid: int) -> dict:
         require(not self.engine.diagnostic, "execution_unavailable", "Diagnostic mode never executes a command. Kernel enforcement is unavailable in this mode.", "compatibility_block")
-        require(not self.active and not self.execution_reserved, "execution_busy", "This experimental backend permits one active action at a time; retry after it ends.", "operational_error")
+        require(not self.execution_reserved, "execution_busy", "Another action is in mandatory-startup handoff; retry after it enters its cgroup or fails closed.", "operational_error")
         from .backends.linux import cgroup_create, kill_group
         self.execution_reserved = True
         try:
@@ -169,6 +169,9 @@ class Server:
                 changed = self.engine.store.db.execute("UPDATE grants SET state='running' WHERE id=? AND state='adopted'", (body["id"],))
                 require(changed.rowcount == 1, "grant_stale", "Grant was revoked during worker startup; no command may execute.")
                 self.engine.store.event("worker_started", {"grant": body["id"], "run": body["run"], "cgroup": group.name, "action_exec_confirmed": False}, uid)
+            # Startup handoff is serialized, but active workers can overlap once
+            # each action has an adopted grant, a cgroup, and a running record.
+            self.execution_reserved = False
             process.stdin.write(canonical(config))
             await process.stdin.drain()
             process.stdin.close()
