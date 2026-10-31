@@ -181,6 +181,9 @@ class Server:
                 changed = self.engine.store.db.execute("UPDATE grants SET state='running' WHERE id=? AND state='adopted'", (body["id"],))
                 require(changed.rowcount == 1, "grant_stale", "Grant was revoked during worker startup; no command may execute.")
                 self.engine.store.event("worker_started", {"grant": body["id"], "run": body["run"], "cgroup": group.name, "action_exec_confirmed": False}, uid)
+            # Startup handoff is serialized, but active workers can overlap once
+            # each action has an adopted grant, a cgroup, and a running record.
+            self.execution_reserved = False
             process.stdin.write(canonical(config))
             await process.stdin.drain()
             process.stdin.close()
@@ -267,6 +270,8 @@ class Server:
         if operation == "run_get":
             fields(data, {"run", "session"})
             return engine.public_run(engine.run(data["run"], data["session"], uid))
+        if operation == "run_history":
+            return engine.history(data, uid)
         if operation == "prepare":
             return engine.prepare(data, uid)
         if operation == "grant_get":
@@ -301,6 +306,27 @@ class Server:
             if result.get("terminate_active"):
                 await self.stop_required(result["run"])
             return result
+        if operation == "trusted_event":
+            result = engine.trusted_event(data, uid, administrative)
+            if result.get("terminate_active"):
+                await self.stop_required(result["run"])
+            return result
+        if operation == "tool_request":
+            result = engine.tool_request(data, uid)
+            if result.get("terminate_active"):
+                await self.stop_required(result["run"])
+            return result
+        if operation == "lease_renew":
+            result = engine.renew_lease(data, uid, administrative)
+            if result.get("terminate_active"):
+                await self.stop_required(result["run"])
+            return result
+        if operation == "run_quarantine":
+            result = engine.quarantine(data, uid, administrative)
+            await self.stop_required(result["run"])
+            return result
+        if operation == "run_recover":
+            return engine.recover_run(data, uid, administrative)
         if operation == "checkpoint":
             result = engine.checkpoint(data, uid, administrative)
             await self.stop_required(result["run"])
@@ -331,6 +357,14 @@ class Server:
                 self.unhealthy = self.audit_failed = True
                 await self.stop_actions()
                 raise
+        if operation == "audit_anchor":
+            engine.admin(uid, administrative)
+            fields(data, set())
+            return engine.store.anchor(uid)
+        if operation == "audit_anchors":
+            engine.admin(uid, administrative)
+            fields(data, set(), {"after", "limit"})
+            return {"anchors": engine.store.anchors(integer(data.get("after", 0), 0, 50000, "after"), integer(data.get("limit", 20), 1, 100, "limit"))}
         if operation == "audit_verify":
             engine.admin(uid, administrative)
             fields(data, set())

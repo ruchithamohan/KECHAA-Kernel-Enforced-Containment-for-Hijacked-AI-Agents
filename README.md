@@ -5,11 +5,12 @@ root-owned Python daemon issues single-use signed grants, then starts the action
 under Linux filesystem, syscall, namespace and process-lifetime restrictions.
 Thin adapters share the same YAML policy engine and local API.
 
-**KECHAA 0.2.0a1 is an experimental Linux containment alpha, not production-ready.** Actual ARM64 and x86_64 Linux VM
-operation now demonstrates offline command and package workflows, filesystem and
-network denials, approval binding, descendant cleanup and daemon-loss handling.
-The [operational report](docs/completion.md) records failures found and corrected,
-measurements, and remaining blockers. No readiness percentage is claimed.
+**KECHAA 0.2.0a1 is an experimental Linux containment alpha, not production-ready.**
+PR #11 adds supervised agent launch, history-aware controls, MCP effect-contract
+authorization, audit anchoring and a fail-closed Linux certification harness.
+Current mainline validation also records Linux VM operation for offline command
+and package workflows, filesystem and network denials, approval binding,
+descendant cleanup and daemon-loss handling. No readiness percentage is claimed.
 
 | Platform | Available | Execution boundary |
 |---|---|---|

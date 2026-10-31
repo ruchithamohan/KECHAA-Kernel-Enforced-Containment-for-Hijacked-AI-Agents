@@ -13,8 +13,9 @@ from .common import (KechaaError, canonical, decode, digest, fields, identifier,
 from .policy import Policy, evaluate, load, validate
 from .store import Store
 
-MODES = {"normal": 0, "guarded": 1, "lockdown": 2}
+MODES = {"normal": 0, "guarded": 1, "lockdown": 2, "quarantined": 3}
 LABELS = {"untrusted_web", "untrusted_repository", "untrusted_mcp", "credential_exposure"}
+TRUSTED_LABELS = LABELS | {"tool_denied", "bypass_attempt", "policy_violation", "agent_compromise"}
 
 
 class Engine:
@@ -85,8 +86,15 @@ class Engine:
         require(row is not None and row["uid"] == uid and row["session"] == session,
                 "run_binding", "Run, session, and authenticated peer UID do not match.")
         require(not row["closed"], "run_closed", "The run has ended. An administrator must confirm a new contract.")
+        body = decode(row["body"])
+        require(body.get("state", "active") not in ("suspended", "quarantined", "terminated"),
+                "run_contained", "The run is suspended, quarantined, or terminated; administrator recovery is required.")
+        lease = body.get("lease", {})
+        now = time.time_ns() // 1000000
+        require(isinstance(lease, dict) and now < integer(lease.get("expires_ms", 0), 0, 9007199254740991, "lease expiration"),
+                "lease_expired", "The agent authorization lease expired. Administrator renewal or recovery is required.")
         deadline = self.run_deadlines.get(run_id)
-        require(deadline is None or time.time_ns() // 1000000 < deadline[0] and time.monotonic() < deadline[1],
+        require(deadline is None or now < deadline[0] and time.monotonic() < deadline[1],
                 "run_expired", "The confirmed session lifetime expired. An administrator must review a new session contract.")
         return dict(row)
 
@@ -131,24 +139,207 @@ class Engine:
                 "identity_in_use", "This OS UID already owns a live session. Resume it or use a separate OS account; session strings do not isolate hostile callers.")
         run_id = secrets.token_hex(16)
         opened = time.time_ns() // 1000000
-        body = {"contract": {"roots": roots, "executables": executables, "write": contract["write"], "lifetime_seconds": lifetime,
-                             "input_integrity": integrity}, "labels": [],
-                "opened_ms": opened, "expires_ms": opened + lifetime * 1000,
-                "signals": [], "actions": 0, "policy_at_confirmation": self.policy.version, "observed_effects_complete": False}
+        expires = opened + lifetime * 1000
+        body = {"contract": {"roots": roots, "executables": executables, "write": contract["write"],
+                             "lifetime_seconds": lifetime, "input_integrity": integrity}, "labels": [],
+                "opened_ms": opened, "expires_ms": expires, "lease": {"issued_ms": opened, "expires_ms": expires, "renewals": 0},
+                "state": "active", "posture": "normal", "trusted_signals": [],
+                "signals": [], "actions": 0, "denials": 0, "policy_at_confirmation": self.policy.version, "observed_effects_complete": False}
         with self.store.transaction():
             self.store.db.execute("INSERT INTO runs VALUES(?,?,?,?,?,?,?,?)", (run_id, target, data["session"], canonical(body), 1, "normal", 0, 0))
             self.store.event("contract_confirmed", {"run": run_id, "uid": target, "session_digest": digest(data["session"]), "contract": body["contract"]}, uid)
+            self.store.history(run_id, "contract_confirmed", {"lease_expires_ms": expires, "mode": "normal"})
         self.run_deadlines[run_id] = (body["expires_ms"], time.monotonic() + lifetime)
         return {"run": run_id, "session": data["session"], "profile": self.profile, "contract": body["contract"], "expires_ms": body["expires_ms"]}
 
+    def history(self, data: dict, uid: int) -> dict:
+        fields(data, {"run", "session"}, {"limit"})
+        row = self.run(data["run"], data["session"], uid)
+        return {"run": row["id"], "history": self.store.history_for_run(row["id"], integer(data.get("limit", 64), 1, 512, "history limit"))}
+
+    def renew_lease(self, data: dict, uid: int, administrative: bool) -> dict:
+        self.admin(uid, administrative)
+        fields(data, {"run", "seconds", "reason"})
+        row = self.admin_run(data["run"])
+        require(not row["closed"], "run_closed", "Closed runs cannot be renewed.")
+        seconds = integer(data["seconds"], 1, 86400, "lease seconds")
+        require(isinstance(data["reason"], str) and 8 <= len(data["reason"]) <= 1000, "lease_reason", "Renewal requires an administrative reason.", "invalid_request")
+        body = decode(row["body"])
+        require(body.get("state", "active") in ("active", "suspended"), "run_contained", "Quarantined or terminated runs require explicit recovery.")
+        now = time.time_ns() // 1000000
+        expires = min(body["expires_ms"], now + seconds * 1000)
+        body["lease"] = {"issued_ms": now, "expires_ms": expires, "renewals": int(body.get("lease", {}).get("renewals", 0)) + 1}
+        if body.get("state") == "suspended":
+            body["state"] = "active"
+        with self.store.transaction():
+            self.store.db.execute("UPDATE runs SET body=?,revision=revision+1 WHERE id=?", (canonical(body), row["id"]))
+            self.store.db.execute("UPDATE grants SET state='revoked_lease' WHERE run=? AND state IN ('issued','pending')", (row["id"],))
+            self.store.history(row["id"], "lease_renewed", {"expires_ms": expires, "reason": data["reason"]})
+            self.store.event("lease_renewed", {"run": row["id"], "expires_ms": expires, "reason": data["reason"]}, uid)
+        self.run_deadlines[row["id"]] = (body["expires_ms"], time.monotonic() + max(0, body["expires_ms"] - now) / 1000)
+        return {"run": row["id"], "lease_expires_ms": expires, "terminate_active": True}
+
+    def _risk_transition(self, row: dict, body: dict, label: str, source: str) -> tuple[str, int, str]:
+        high = {"credential_exposure", "bypass_attempt", "agent_compromise"}
+        medium = {"untrusted_web", "untrusted_repository", "untrusted_mcp", "tool_denied", "policy_violation"}
+        points = 60 if label in high else 20 if label in medium else 10
+        score = min(100, row["score"] + points)
+        mode = "quarantined" if score >= 90 or label == "agent_compromise" else "lockdown" if score >= 60 else "guarded"
+        if MODES[row["mode"]] > MODES[mode]:
+            mode = row["mode"]
+        reason = f"{source}:{label} raised cumulative risk to {score}."
+        return mode, points, reason
+
+    def trusted_event(self, data: dict, uid: int, administrative: bool = False) -> dict:
+        fields(data, {"run", "label", "source"}, {"session", "reason"})
+        require(administrative or "session" in data, "session_required", "Non-administrative posture events must be bound to a session.", "invalid_request")
+        row = self.admin_run(data["run"]) if administrative and "session" not in data else self.run(data["run"], data["session"], uid)
+        require(isinstance(data["label"], str) and data["label"] in TRUSTED_LABELS, "label_unknown", "Unknown trusted posture label.", "invalid_request")
+        require(isinstance(data["source"], str) and data["source"] in ("supervisor", "tool_gateway", "kernel", "admin", "client_report"),
+                "event_source", "Trusted event source is not recognized.", "invalid_request")
+        if data["source"] == "admin":
+            self.admin(uid, administrative)
+        body = decode(row["body"])
+        mode, points, reason = self._risk_transition(row, body, data["label"], data["source"])
+        body["labels"] = sorted(set(body.get("labels", [])) | {data["label"]})
+        body["posture"] = mode
+        if mode == "quarantined":
+            body["state"] = "quarantined"
+        signal = {"signal": data["label"], "source": data["source"], "points": points, "reason": data.get("reason", reason)}
+        body["trusted_signals"] = (body.get("trusted_signals", []) + [signal])[-64:]
+        with self.store.transaction():
+            self.store.db.execute("UPDATE runs SET body=?,mode=?,revision=revision+1,score=MIN(100,score+?) WHERE id=?",
+                                  (canonical(body), mode, points, row["id"]))
+            self.store.db.execute("UPDATE grants SET state='revoked_posture' WHERE run=? AND state IN ('issued','pending')", (row["id"],))
+            self.store.history(row["id"], "posture_changed", {"label": data["label"], "source": data["source"], "mode": mode, "reason": signal["reason"]}, min(100, row["score"] + points))
+            self.store.event("posture_changed", {"run": row["id"], "label": data["label"], "source": data["source"], "mode": mode,
+                             "response": "Active action must terminate; future actions require a new envelope."}, uid)
+        return {"run": row["id"], "mode": mode, "state": body.get("state", "active"), "changed": True, "terminate_active": True}
+
+    def tool_request(self, data: dict, uid: int) -> dict:
+        fields(data, {"run", "session", "tool", "effects"})
+        row = self.run(data["run"], data["session"], uid)
+        require(isinstance(data["tool"], str) and 1 <= len(data["tool"]) <= 128, "tool_name", "Invalid tool name.", "invalid_request")
+        effects = fields(data["effects"], set(), {"read", "write", "network", "kind"}, where="tool effects")
+        tool = data["tool"]
+        body = decode(row["body"])
+        contract = body["contract"]
+        decision, reason, risk = "allow", "Tool effects are within the confirmed run contract.", row["score"]
+        reads = [path_string(path) for path in effects.get("read", [])]
+        writes = [path_string(path) for path in effects.get("write", [])]
+        network = effects.get("network", "offline")
+        kind = effects.get("kind")
+        require(isinstance(effects.get("read", []), list) and isinstance(effects.get("write", []), list),
+                "tool_effects", "Tool read/write effects must be path lists.", "invalid_request")
+        require(network in ("offline", "external"), "tool_network", "Tool network effect must be offline or external.", "invalid_request")
+        require(kind is None or kind in ("mcp_effect_contract", "file_effect_contract"),
+                "tool_effect_kind", "Unsupported tool effect contract kind.", "invalid_request")
+        sensitive = set(self.policy.document["sensitive"])
+        home = pwd.getpwuid(uid).pw_dir.rstrip("/")
+        sensitive |= {home + suffix for suffix in ("/.ssh", "/.aws", "/.azure", "/.kube", "/.config/gcloud", "/.claude", "/.codex")}
+        if tool in ("WebFetch", "WebSearch") or network == "external":
+            decision, reason, risk = "deny", "External web/MCP/network tool effects are unsupported by this offline profile and fail closed.", min(100, row["score"] + 20)
+        elif tool.startswith("mcp__") and kind != "mcp_effect_contract":
+            decision, reason, risk = "deny", "MCP tool effects require a trusted explicit effect contract and fail closed without one.", min(100, row["score"] + 20)
+        elif any(any(within(path, item) or within(item, path) for item in sensitive) for path in reads + writes):
+            decision, reason, risk = "deny", "Tool effects overlap sensitive credential/configuration paths.", min(100, row["score"] + 60)
+        elif any(not any(within(path, root) for root in contract["roots"]) for path in reads + writes):
+            decision, reason, risk = "deny", "Tool effects exceed the confirmed run roots.", min(100, row["score"] + 20)
+        elif writes and (not contract["write"] or row["mode"] != "normal"):
+            decision, reason = "ask", "Write-capable tool requires administrator approval or recovery in the current posture."
+        with self.store.transaction():
+            self.store.history(row["id"], "tool_request", {"tool": tool, "effects": effects, "decision": decision, "reason": reason}, risk)
+            if decision == "deny":
+                event = "untrusted_mcp" if tool.startswith("mcp__") else "untrusted_web" if tool in ("WebFetch", "WebSearch") or network == "external" else "tool_denied"
+                mode, points, posture_reason = self._risk_transition(row, body, event, "tool_gateway")
+                body["labels"] = sorted(set(body.get("labels", [])) | {event})
+                body["posture"] = mode
+                if mode == "quarantined":
+                    body["state"] = "quarantined"
+                body["trusted_signals"] = (body.get("trusted_signals", []) + [{"signal": event, "source": "tool_gateway", "points": points, "reason": posture_reason}])[-64:]
+                self.store.db.execute("UPDATE runs SET body=?,mode=?,revision=revision+1,score=MIN(100,score+?) WHERE id=?",
+                                      (canonical(body), mode, points, row["id"]))
+                self.store.db.execute("UPDATE grants SET state='revoked_posture' WHERE run=? AND state IN ('issued','pending')", (row["id"],))
+                self.store.event("tool_request_denied", {"run": row["id"], "tool": tool, "reason": reason, "mode": mode}, uid)
+                return {"decision": decision, "reason": reason, "run": row["id"], "mode": mode, "terminate_active": True}
+            self.store.event("tool_request_reviewed", {"run": row["id"], "tool": tool, "decision": decision}, uid)
+        return {"decision": decision, "reason": reason, "run": row["id"], "mode": row["mode"], "terminate_active": False}
+
+    def quarantine(self, data: dict, uid: int, administrative: bool) -> dict:
+        self.admin(uid, administrative)
+        fields(data, {"run", "reason"})
+        row = self.admin_run(data["run"])
+        require(isinstance(data["reason"], str) and 8 <= len(data["reason"]) <= 1000, "quarantine_reason", "Quarantine requires an administrative reason.", "invalid_request")
+        body = decode(row["body"])
+        body["state"] = "quarantined"
+        body["posture"] = "quarantined"
+        with self.store.transaction():
+            self.store.db.execute("UPDATE runs SET body=?,mode='quarantined',revision=revision+1,score=100 WHERE id=?", (canonical(body), row["id"]))
+            self.store.db.execute("UPDATE grants SET state='revoked_quarantine' WHERE run=? AND state IN ('issued','pending')", (row["id"],))
+            self.store.history(row["id"], "quarantined", {"reason": data["reason"]}, 100)
+            self.store.event("run_quarantined", {"run": row["id"], "reason": data["reason"]}, uid)
+        return {"run": row["id"], "state": "quarantined", "terminate_active": True}
+
+    def recover_run(self, data: dict, uid: int, administrative: bool) -> dict:
+        self.admin(uid, administrative)
+        fields(data, {"run", "mode", "seconds", "reason"})
+        row = self.admin_run(data["run"])
+        require(data["mode"] in ("normal", "guarded", "lockdown"), "recover_mode", "Recovery mode must be normal, guarded or lockdown.", "invalid_request")
+        require(isinstance(data["reason"], str) and 8 <= len(data["reason"]) <= 1000, "recover_reason", "Recovery requires an administrative reason.", "invalid_request")
+        seconds = integer(data["seconds"], 1, 86400, "lease seconds")
+        now = time.time_ns() // 1000000
+        body = decode(row["body"])
+        expires = min(body["expires_ms"], now + seconds * 1000)
+        body["state"] = "active"
+        body["posture"] = data["mode"]
+        body["lease"] = {"issued_ms": now, "expires_ms": expires, "renewals": int(body.get("lease", {}).get("renewals", 0)) + 1}
+        with self.store.transaction():
+            self.store.db.execute("UPDATE runs SET body=?,mode=?,revision=revision+1 WHERE id=?", (canonical(body), data["mode"], row["id"]))
+            self.store.db.execute("UPDATE grants SET state='revoked_recovery' WHERE run=? AND state IN ('issued','pending')", (row["id"],))
+            self.store.history(row["id"], "recovered", {"mode": data["mode"], "expires_ms": expires, "reason": data["reason"]})
+            self.store.event("run_recovered", {"run": row["id"], "mode": data["mode"], "expires_ms": expires, "reason": data["reason"]}, uid)
+        return {"run": row["id"], "state": "active", "mode": data["mode"], "lease_expires_ms": expires}
+
+    def _history_decision(self, row: dict, action: dict, decision: dict) -> dict:
+        body = decode(row["body"])
+        history = self.store.history_for_run(row["id"], 64)
+        recent_denials = [item for item in history[-20:] if item["kind"] in ("request_denied", "policy_denied", "suspicious_action")]
+        reasons = []
+        mode = row["mode"]
+        require(body.get("state", "active") == "active", "run_contained", "Run is not active; administrator recovery is required.")
+        require(mode != "quarantined", "run_quarantined", "Run is quarantined; administrator recovery is required.")
+        if len(recent_denials) >= 3:
+            mode = "lockdown"
+            reasons.append("three or more recent denials require administrator checkpoint before more execution")
+        argv_paths = [arg for arg in action["argv"][1:] if isinstance(arg, str) and arg.startswith("/")]
+        sensitive_hits = [arg for arg in argv_paths if any(within(arg, sensitive) or within(sensitive, arg) for sensitive in decision.get("effects", {}).get("sensitive", []))]
+        if sensitive_hits:
+            mode = "lockdown"
+            reasons.append("argv references sensitive path outside explicit approved inputs")
+        if mode == "lockdown":
+            return {"decision": "deny", "category": "security_block", "reason": "; ".join(reasons) or "Run is in lockdown.",
+                    "matched": decision.get("matched", []), "history": {"recent_denials": len(recent_denials)}}
+        if mode == "guarded" and decision["decision"] == "allow":
+            decision = {**decision, "decision": "ask", "reason": decision["reason"] + " History-aware guarded posture requires approval."}
+        decision["history"] = {"recent_denials": len(recent_denials), "mode": mode, "risk": row["score"]}
+        return decision
+
     def prepare(self, data: dict, uid: int) -> dict:
-        fields(data, {"run", "session", "action"})
+        fields(data, {"run", "session", "action"}, {"supervised"})
         row = self.run(data["run"], data["session"], uid)
         action = effects.request(data["action"])
+        supervised = data.get("supervised", False)
+        require(type(supervised) is bool, "supervised_flag", "Supervised launch marker must be boolean.", "invalid_request")
         contract = decode(row["body"])["contract"]
         require(any(within(action["cwd"], r) for r in contract["roots"]), "contract_scope", "Working directory exceeds the confirmed task contract.")
         require(action["argv"][0] in contract["executables"], "contract_executable", "Executable is outside the confirmed task contract.")
         decision = evaluate(self.policy, action["argv"], action["cwd"], row["mode"])
+        if decision["decision"] != "deny":
+            decision = self._history_decision(row, action, decision)
+        if decision["decision"] == "deny":
+            with self.store.transaction():
+                self.store.history(row["id"], "policy_denied", {"reason": decision["reason"], "action": action,
+                                   "matched": decision.get("matched", []), "history": decision.get("history", {})}, min(100, row["score"] + 20))
         require(decision["decision"] != "deny", "policy_denied", decision["reason"])
         envelope = decision["effects"]
         if not self.diagnostic:
@@ -199,18 +390,32 @@ class Engine:
                 "issued_ms": now, "expires_ms": expires, "profile": self.profile,
                 "action": action, "action_digest": digest(action), "effects": envelope, "effects_digest": digest(envelope),
                 "inputs": identified, "inputs_digest": digest(identified), "decision": decision["decision"]}
+        if supervised:
+            body["supervised_agent"] = True
+            body["boundary"] = {"schema": 1, "kind": "whole-agent-process-tree", "mandatory": not self.diagnostic,
+                                "run": row["id"], "session": data["session"],
+                                "mechanisms": ["single-use grant", "lease-bound run", "cgroup-v2", "pid namespace",
+                                               "mount namespace", "network namespace", "Landlock", "seccomp", "credential drop"],
+                                "coverage": "entry process and descendants launched by the KECHAA Linux worker",
+                                "unsupported": "processes started outside the KECHAA launcher are outside the claimed supported boundary"}
         signature = self.store.sign("KECHAA-GRANT-1", body)
         state = "pending" if decision["decision"] == "ask" else "issued"
         with self.store.transaction():
             self.store.db.execute("INSERT INTO grants VALUES(?,?,?,?,?)", (grant_id, row["id"], state, canonical(body), signature))
+            self.store.history(row["id"], "grant_prepared", {"grant": grant_id, "decision": decision["decision"],
+                               "action_digest": body["action_digest"], "effects_digest": body["effects_digest"],
+                               "history": decision.get("history", {})}, row["score"])
+            if supervised:
+                self.store.history(row["id"], "supervised_agent_prepared", {"grant": grant_id, "boundary": body["boundary"]}, row["score"])
             self.store.event("grant_prepared" if state == "pending" else "grant_issued", {
                 "grant": grant_id, "run": row["id"], "state": state, "policy": self.policy.version,
                 "action_digest": body["action_digest"], "effects_digest": body["effects_digest"],
                 "inputs_digest": body["inputs_digest"], "effects": envelope, "expires_ms": body["expires_ms"],
-                "matched_rules": decision["matched"]}, uid)
+                "matched_rules": decision["matched"], "supervised_agent": supervised}, uid)
         self.deadlines[grant_id] = time.monotonic() + (expires - now) / 1000
         return {"grant": grant_id, "state": state, "decision": decision["decision"], "summary": decision,
                 "action": action, "inputs": identified, "expires_ms": body["expires_ms"], "profile": self.profile,
+                "supervised_agent": supervised, "boundary": body.get("boundary"),
                 "next": "Administrator: grant approve --grant <id> after reviewing grant show." if state == "pending" else "Present the exact action to exec; grants are single-use."}
 
     def grant(self, grant_id: str) -> tuple[dict, dict]:
@@ -243,9 +448,13 @@ class Engine:
         return {"grant": body["id"], "state": "issued"}
 
     def consume(self, data: dict, uid: int, simulation: bool) -> dict:
-        fields(data, {"grant", "run", "session", "action"})
+        fields(data, {"grant", "run", "session", "action"}, {"supervised"})
         row, body = self.grant(data["grant"])
         run = self.run(data["run"], data["session"], uid)
+        supervised = data.get("supervised", False)
+        require(type(supervised) is bool, "supervised_flag", "Supervised launch marker must be boolean.", "invalid_request")
+        require(supervised == bool(body.get("supervised_agent", False)), "grant_binding",
+                "A supervised agent grant can only be consumed through the supervised launcher, and ordinary grants cannot be upgraded at launch.")
         require(body["run"] == run["id"] and body["session"] == data["session"] and body["uid"] == uid,
                 "grant_binding", "Grant is bound to a different run, session, or OS user.")
         require(row["state"] != "expired", "grant_expired", "Grant expired; request a fresh approval.")
@@ -266,7 +475,9 @@ class Engine:
         with self.store.transaction():
             cursor = self.store.db.execute("UPDATE grants SET state=? WHERE id=? AND state='issued'", ("simulated" if simulation else "adopted", body["id"]))
             require(cursor.rowcount == 1, "grant_replay", "Grant already consumed.")
-            self.store.event("grant_simulated" if simulation else "grant_adopted", {"grant": body["id"], "run": body["run"], "executed": False, "effects_digest": body["effects_digest"]}, uid)
+            self.store.history(body["run"], "grant_consumed", {"grant": body["id"], "simulation": simulation, "supervised_agent": supervised}, 0)
+            self.store.event("grant_simulated" if simulation else "grant_adopted", {"grant": body["id"], "run": body["run"], "executed": False,
+                             "effects_digest": body["effects_digest"], "supervised_agent": supervised}, uid)
         if simulation:
             self.deadlines.pop(body["id"], None)
         return body
@@ -278,6 +489,9 @@ class Engine:
             run_body = decode(row["body"])
             run_body["actions"] += 1
             self.store.db.execute("UPDATE runs SET body=? WHERE id=?", (canonical(run_body), body["run"]))
+            self.store.history(body["run"], "action_finished", {"grant": body["id"], "exit_code": result["exit_code"],
+                               "termination": result.get("termination"), "controls_ready": result.get("controls_ready", False)},
+                               0 if result["exit_code"] == 0 else 20)
             self.store.event("action_finished", {"run": body["run"], "grant": body["id"],
                              **{k: v for k, v in result.items() if k not in ("stdout", "stderr")},
                              "observed_effects_complete": False}, body["uid"])
@@ -287,25 +501,7 @@ class Engine:
         fields(data, {"run", "session", "label"})
         row = self.run(data["run"], data["session"], uid)
         require(isinstance(data["label"], str) and data["label"] in LABELS, "label_unknown", "Unknown untrusted-input label.", "invalid_request")
-        body = decode(row["body"])
-        label = data["label"]
-        intended = "lockdown" if label == "credential_exposure" else "guarded"
-        if label in body["labels"] and MODES[row["mode"]] >= MODES[intended]:
-            return {"run": row["id"], "mode": row["mode"], "changed": False}
-        body["labels"] = sorted(set(body["labels"]) | {label})
-        points = 60 if label == "credential_exposure" else 20
-        score = min(100, row["score"] + points)
-        mode = "lockdown" if score >= 60 else "guarded"
-        if MODES[row["mode"]] > MODES[mode]:
-            mode = row["mode"]
-        body["signals"] = (body["signals"] + [{"signal": label, "source": "client_report", "points": points}])[-64:]
-        with self.store.transaction():
-            self.store.db.execute("UPDATE runs SET body=?,mode=?,revision=revision+1,score=MIN(100,score+?) WHERE id=?",
-                                  (canonical(body), mode, points, row["id"]))
-            self.store.db.execute("UPDATE grants SET state='revoked_posture' WHERE run=? AND state IN ('issued','pending')", (row["id"],))
-            self.store.event("run_tightened", {"run": row["id"], "label": label, "source": "client_report", "mode": mode, "score": score, "points": points,
-                             "response": "Active action must terminate; future actions require a new envelope."}, uid)
-        return {"run": row["id"], "mode": mode, "changed": True, "terminate_active": True}
+        return self.trusted_event({"run": data["run"], "session": data["session"], "label": data["label"], "source": "client_report"}, uid)
 
     def checkpoint(self, data: dict, uid: int, administrative: bool) -> dict:
         self.admin(uid, administrative)
@@ -395,6 +591,11 @@ class Engine:
     def expire_runs(self) -> list[str]:
         now, monotonic = time.time_ns() // 1000000, time.monotonic()
         ended = [run for run, deadline in self.run_deadlines.items() if now >= deadline[0] or monotonic >= deadline[1]]
+        for row in self.store.db.execute("SELECT id,body FROM runs WHERE closed=0").fetchall():
+            body = decode(row["body"])
+            lease = body.get("lease", {})
+            if row["id"] not in ended and isinstance(lease, dict) and now >= int(lease.get("expires_ms", 0)):
+                ended.append(row["id"])
         terminated = []
         if ended:
             with self.store.transaction():
@@ -402,6 +603,7 @@ class Engine:
                     changed = self.store.db.execute("UPDATE runs SET closed=1,revision=revision+1 WHERE id=? AND closed=0", (run,))
                     if changed.rowcount:
                         self.store.db.execute("UPDATE grants SET state='revoked_session' WHERE run=? AND state IN ('issued','pending')", (run,))
+                        self.store.history(run, "lease_or_run_expired", {"response": "closed and revoked pending grants"}, 100)
                         self.store.event("run_expired", {"run": run, "response": "terminate active action; require new administrator-confirmed contract"}, self.owner)
                         terminated.append(run)
             for run in ended:
@@ -416,10 +618,11 @@ class Engine:
         return {"ready": True, "profile": self.profile, "policy": self.policy.version,
                 "protocol_version": 1, "policy_schema": 1, "state_schema": 1,
                 "capabilities": {"execution": "disabled" if self.diagnostic else "experimental",
-                                 "network": "offline-only", "observation": "lifecycle-only",
-                                 "leases": False, "whole_agent_containment": False,
+                                 "network": "offline-only", "observation": "history-and-lifecycle; kernel effect stream incomplete",
+                                 "leases": True, "whole_agent_containment": "supervised-boundary-required; not native for arbitrary agents",
+                                 "history_aware_policy": True, "quarantine": True,
                                  "policy_history": True, "policy_rollback": True, "expiring_policy_rules": True,
-                                 "signed_audit_checkpoints": True, "offline_backups": True,
+                                 "signed_audit_checkpoints": True, "audit_anchors": True, "offline_backups": True,
                                  "live_session_identity": "exclusive-os-uid",
                                  "workspace_integrity": "unavailable" if self.diagnostic else "optional-readonly-filesystem",
                                  "aggregate_cpu_budget": not self.diagnostic},

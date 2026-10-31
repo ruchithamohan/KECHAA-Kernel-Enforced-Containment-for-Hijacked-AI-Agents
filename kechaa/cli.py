@@ -82,12 +82,38 @@ def parser() -> argparse.ArgumentParser:
     q.add_argument("--session", required=True)
     q.add_argument("--contract", type=Path, required=True)
     q.add_argument("--confirm", action="store_true", help="Administrator has inspected the displayed contract")
-    for name in ("show", "close"):
+    for name in ("show", "close", "history"):
         q = run.add_parser(name)
         q.add_argument("--run", required=True)
         q.add_argument("--session", required=True)
+        if name == "history":
+            q.add_argument("--limit", type=int, default=64)
+    q = run.add_parser("renew")
+    q.add_argument("--run", required=True)
+    q.add_argument("--seconds", type=int, required=True)
+    q.add_argument("--reason", required=True)
+    q = run.add_parser("quarantine")
+    q.add_argument("--run", required=True)
+    q.add_argument("--reason", required=True)
+    q = run.add_parser("recover")
+    q.add_argument("--run", required=True)
+    q.add_argument("--mode", choices=("normal", "guarded", "lockdown"), required=True)
+    q.add_argument("--seconds", type=int, required=True)
+    q.add_argument("--reason", required=True)
     for name in ("prepare", "exec", "simulate"):
         q = sub.add_parser(name, help={"prepare": "Inspect an envelope and request a grant", "exec": "Consume a grant and execute only through the daemon backend", "simulate": "DIAGNOSTIC ONLY: consume a grant WITHOUT executing"}[name])
+        q.add_argument("--run", required=True)
+        q.add_argument("--session", required=True)
+        q.add_argument("--cwd", required=True)
+        q.add_argument("--input", action="append", default=[])
+        if name != "prepare":
+            q.add_argument("--grant", required=True)
+        q.add_argument("argv", nargs=argparse.REMAINDER)
+    agent = sub.add_parser("agent", help="Mandatory whole-agent launcher; supported agents must enter through this boundary").add_subparsers(dest="agent_command", required=True)
+    for name in ("prepare", "launch", "simulate"):
+        q = agent.add_parser(name, help={"prepare": "Inspect a supervised whole-agent launch envelope",
+                                         "launch": "Consume a supervised grant and launch through the Linux containment worker",
+                                         "simulate": "DIAGNOSTIC ONLY: consume a supervised grant without executing"}[name])
         q.add_argument("--run", required=True)
         q.add_argument("--session", required=True)
         q.add_argument("--cwd", required=True)
@@ -106,6 +132,27 @@ def parser() -> argparse.ArgumentParser:
     q.add_argument("--run", required=True)
     q.add_argument("--session", required=True)
     q.add_argument("--label", choices=("untrusted_web", "untrusted_repository", "untrusted_mcp", "credential_exposure"), required=True)
+    q = sub.add_parser("trusted-event", help="Administrator/supervisor posture event; can only tighten or quarantine")
+    q.add_argument("--run", required=True)
+    q.add_argument("--session")
+    q.add_argument("--label", choices=("untrusted_web", "untrusted_repository", "untrusted_mcp", "credential_exposure", "tool_denied", "bypass_attempt", "policy_violation", "agent_compromise"), required=True)
+    q.add_argument("--source", choices=("supervisor", "tool_gateway", "kernel", "admin", "client_report"), required=True)
+    q.add_argument("--reason")
+    q = sub.add_parser("tool-check", help="Trusted tool gateway authorization check for non-shell tool effects")
+    q.add_argument("--run", required=True)
+    q.add_argument("--session", required=True)
+    q.add_argument("--tool", required=True)
+    q.add_argument("--read", action="append", default=[])
+    q.add_argument("--write", action="append", default=[])
+    q.add_argument("--network", choices=("offline", "external"), default="offline")
+    q = sub.add_parser("mcp-check", help="Authorize an MCP tool only from a trusted explicit effect contract; does not execute MCP servers")
+    q.add_argument("--run", required=True)
+    q.add_argument("--session", required=True)
+    q.add_argument("--server", required=True)
+    q.add_argument("--tool", required=True)
+    q.add_argument("--read", action="append", default=[])
+    q.add_argument("--write", action="append", default=[])
+    q.add_argument("--network", choices=("offline", "external"), default="offline")
     q = sub.add_parser("checkpoint", help="Administrator-only posture change; preserves labels and audit history")
     q.add_argument("--run", required=True)
     q.add_argument("--mode", choices=("normal", "guarded", "lockdown"), required=True)
@@ -118,6 +165,10 @@ def parser() -> argparse.ArgumentParser:
     q.add_argument("--checkpoint", type=Path, help="Authenticate the expected head using a saved signed checkpoint")
     q = audit.add_parser("checkpoint")
     q.add_argument("--output", type=Path, required=True, help="New file for the signed checkpoint; copy it to independent storage")
+    audit.add_parser("anchor", help="Persist a signed checkpoint in the local state before copying/exporting it independently")
+    q = audit.add_parser("anchors", help="List locally retained checkpoint anchors")
+    q.add_argument("--after", type=int, default=0)
+    q.add_argument("--limit", type=int, default=20)
     q = audit.add_parser("export")
     q.add_argument("--output", type=Path, required=True)
     q.add_argument("--state", type=Path, help="Offline read-only export from a stopped or full daemon database")
@@ -236,8 +287,18 @@ def handle(args) -> int:
                 output({"proposed_contract": contract, "next": "Inspect this contract, then repeat with --confirm using the administrative socket."})
                 return 2
             output(call(args.admin_socket, "run_open", {"uid": args.uid, "session": args.session, "contract": contract, "confirmed": True}))
-        else:
-            output(call(args.socket, "run_get" if args.run_command == "show" else "run_close", {"run": args.run, "session": args.session}))
+        elif args.run_command in ("show", "close", "history"):
+            operation = {"show": "run_get", "close": "run_close", "history": "run_history"}[args.run_command]
+            data = {"run": args.run, "session": args.session}
+            if args.run_command == "history":
+                data["limit"] = args.limit
+            output(call(args.socket, operation, data))
+        elif args.run_command == "renew":
+            output(call(args.admin_socket, "lease_renew", {"run": args.run, "seconds": args.seconds, "reason": args.reason}))
+        elif args.run_command == "quarantine":
+            output(call(args.admin_socket, "run_quarantine", {"run": args.run, "reason": args.reason}))
+        elif args.run_command == "recover":
+            output(call(args.admin_socket, "run_recover", {"run": args.run, "mode": args.mode, "seconds": args.seconds, "reason": args.reason}))
     elif cmd in ("prepare", "exec", "simulate"):
         action = {"argv": argv_value(args.argv), "cwd": str(Path(args.cwd).resolve()), "inputs": [str(Path(p).resolve()) for p in args.input]}
         data = {"run": args.run, "session": args.session, "action": action}
@@ -257,6 +318,25 @@ def handle(args) -> int:
             code = result["exit_code"]
             return code if 0 <= code <= 255 else 128 + min(127, abs(code))
         output(result)
+    elif cmd == "agent":
+        action = {"argv": argv_value(args.argv), "cwd": str(Path(args.cwd).resolve()), "inputs": [str(Path(p).resolve()) for p in args.input]}
+        data = {"run": args.run, "session": args.session, "action": action, "supervised": True}
+        if args.agent_command != "prepare":
+            data["grant"] = args.grant
+        result = call(args.socket, "execute" if args.agent_command == "launch" else args.agent_command.replace("agent_", ""), data,
+                      timeout=620 if args.agent_command == "launch" else 15)
+        if args.agent_command == "launch":
+            sys.stdout.buffer.write(base64.b64decode(result["stdout"]))
+            sys.stderr.buffer.write(base64.b64decode(result["stderr"]))
+            if result["termination"] != "exited" or not result["controls_ready"] or "cleanup" in result:
+                sys.stderr.buffer.flush()
+                print(json.dumps({"kechaa": "supervised_agent_did_not_complete_normally", "grant": result["grant"],
+                                  "termination": result["termination"], "controls_ready": result["controls_ready"],
+                                  "cleanup": result.get("cleanup", "complete"),
+                                  "initialization_error": result.get("initialization_error")}), file=sys.stderr)
+            code = result["exit_code"]
+            return code if 0 <= code <= 255 else 128 + min(127, abs(code))
+        output(result)
     elif cmd == "grant":
         data = {"grant": args.grant}
         operation = {"show": "grant_get", "approve": "grant_approve", "revoke": "grant_revoke"}[args.grant_command]
@@ -265,6 +345,24 @@ def handle(args) -> int:
         output(call(args.admin_socket, operation, data))
     elif cmd == "event":
         output(call(args.socket, "event", {"run": args.run, "session": args.session, "label": args.label}))
+    elif cmd == "trusted-event":
+        data = {"run": args.run, "label": args.label, "source": args.source}
+        if args.session:
+            data["session"] = args.session
+        if args.reason:
+            data["reason"] = args.reason
+        output(call(args.admin_socket if args.source == "admin" else args.socket, "trusted_event", data))
+    elif cmd == "tool-check":
+        output(call(args.socket, "tool_request", {"run": args.run, "session": args.session, "tool": args.tool,
+               "effects": {"read": [str(Path(p).resolve()) for p in args.read],
+                           "write": [str(Path(p).resolve()) for p in args.write], "network": args.network}}))
+    elif cmd == "mcp-check":
+        require(args.server.replace("_", "").replace("-", "").isalnum() and args.tool.replace("_", "").replace("-", "").isalnum(),
+                "mcp_name", "MCP server and tool names must be bounded alphanumeric identifiers.", "invalid_request")
+        output(call(args.socket, "tool_request", {"run": args.run, "session": args.session,
+               "tool": f"mcp__{args.server}__{args.tool}",
+               "effects": {"kind": "mcp_effect_contract", "read": [str(Path(p).resolve()) for p in args.read],
+                           "write": [str(Path(p).resolve()) for p in args.write], "network": args.network}}))
     elif cmd == "checkpoint":
         output(call(args.admin_socket, "checkpoint", {"run": args.run, "mode": args.mode, "reason": args.reason}))
     elif cmd == "audit":
@@ -287,6 +385,10 @@ def handle(args) -> int:
             checkpoint = call(args.admin_socket, "audit_checkpoint")
             write_new(args.output, canonical(checkpoint) + b'\n')
             output({"checkpoint": str(args.output), "head": checkpoint["checkpoint"]["head"]})
+        elif args.audit_command == "anchor":
+            output(call(args.admin_socket, "audit_anchor"))
+        elif args.audit_command == "anchors":
+            output(call(args.admin_socket, "audit_anchors", {"after": args.after, "limit": args.limit}))
         elif args.audit_command == "bundle":
             from .evidence import export_live
             output(export_live(args.admin_socket, args.output.absolute(), bundle=True))
