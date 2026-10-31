@@ -46,10 +46,11 @@ class AdversarialControlPlaneTests(unittest.TestCase):
         self.store.close()
         self.temp.cleanup()
 
-    def open_run(self, session="agent-a", root=None):
+    def open_run(self, session="agent-a", root=None, uid=None):
         root = self.root if root is None else root
+        target = self.uid if uid is None else uid
         contract = {"roots": [str(root)], "executables": ["/bin/echo"], "write": True, "lifetime_seconds": 60}
-        return self.engine.open_run({"uid": self.uid, "session": session, "contract": contract, "confirmed": True}, self.uid, True)
+        return self.engine.open_run({"uid": target, "session": session, "contract": contract, "confirmed": True}, self.uid, True)
 
     def test_forged_grant_id_is_rejected(self):
         run = self.open_run()
@@ -80,14 +81,15 @@ class AdversarialControlPlaneTests(unittest.TestCase):
 
     def test_agent_identity_confusion_cannot_cross_contract_roots(self):
         run_a = self.open_run("agent-a", self.root)
-        run_b = self.open_run("agent-b", self.other)
+        other_uid = self.uid + 1
+        run_b = self.open_run("agent-b", self.other, uid=other_uid)
         with self.assertRaises(KechaaError) as ctx:
             self.engine.prepare({"run": run_a["run"], "session": "agent-b",
                                  "action": {"argv": ["/bin/echo", "x"], "cwd": str(self.other)}}, self.uid)
         self.assertEqual(ctx.exception.code, "run_binding")
         with self.assertRaises(KechaaError) as ctx:
             self.engine.prepare({"run": run_b["run"], "session": "agent-b",
-                                 "action": {"argv": ["/bin/echo", "x"], "cwd": str(self.root)}}, self.uid)
+                                 "action": {"argv": ["/bin/echo", "x"], "cwd": str(self.root)}}, other_uid)
         self.assertEqual(ctx.exception.code, "contract_scope")
 
 

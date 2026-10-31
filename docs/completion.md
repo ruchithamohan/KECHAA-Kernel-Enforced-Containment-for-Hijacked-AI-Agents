@@ -231,3 +231,84 @@ were `dcf3a046a589efd0cc45efab0c467c98d9d1185611f43e97afabb0129942a4c5`
 (macOS); prefix-specific entrypoints make these hashes different. Release
 documentation/ignore-list edits regenerate the archive checksum and do not
 constitute a new kernel-enforcement validation.
+
+## Audit-handoff hardening
+
+On 2026-10-29, the audit handoff's ten issue categories were reviewed against
+source and actual operation. This follow-up adds secure startup without Python
+site hooks, ownership validation before application/dependency imports, an
+optional immutable workspace contract, aggregate CPU accounting, confirmed
+cgroup cleanup, exclusive live sessions per OS UID, bounded pending grants and
+checkpoint-bound public evidence bundles. It does not close every release gate.
+The issue-by-issue remaining work is retained in release.md.
+
+The actual-use environments were macOS Darwin 27 ARM64 / CPython 3.14.8 and two
+disposable Debian 13 VMs, Linux 6.12.113+deb13-arm64 and
+6.12.113+deb13-amd64 / CPython 3.13.5. Both guests exposed Landlock ABI 6 and used
+QEMU 11.1.3 TCG, one CPU, 768 MiB RAM, no NIC, no shared host folders and an
+outer 3600-second runtime / 8 MiB serial-log bound. Guest recovery shells were
+booted with `init=/bin/bash`; normal systemd boot was not part of this run.
+The x86 guest needed QEMU's emulated SMM disabled to avoid a firmware stall;
+this changed only the disposable VM model, not host security configuration.
+All cgroups, mounts and action accounts were prepared inside the guests.
+The profile was `linux-offline-experimental`, version 0.2.0a1 throughout.
+
+| Operation actually performed | Result and evidence |
+|---|---|
+| Install using `python -IS tools/install.py install`, then `verify`, `version`, `doctor` | PASS on macOS and both guests. Manifests verified 20 program files. macOS explicitly reported no protected execution. |
+| Benign `.pth` fixture writing a dummy marker | PASS on ARM64: ordinary `python -I` created the marker; installed KECHAA did not. Fixture and marker removed. |
+| World-writable dependency module and application `.pyc` fixture | PASS on ARM64: entrypoint refused both before application operation; worked after fixture removal. |
+| Second live session under UID 1001 | PASS: `identity_in_use`; a disposable legacy database's two conflicting sessions both closed on upgrade. Same-UID unconfined peers remain one trust domain. |
+| Sixteen unused grants, seventeenth prepare, revoke then prepare | PASS on ARM64: cap refused the extra request; revocation permitted another prepare. A separate final macOS diagnostic console completed 260 prepare/revoke cycles without exhausting the global deadline slots; no commands executed. |
+| Exact action, then reuse of its grant | PASS on both architectures. Replay classification was corrected during operation and repeated successfully with the updated build. |
+| Immutable contract on writable dedicated tmpfs | PASS on both: `workspace_mutable`, with no command execution. |
+| Remount dedicated input volume read-only and run approved script | PASS on ARM64: unconfined UID 1001 helper replacement returned EROFS; protected Python imported the unchanged helper and exited 0. x86 approved read-only echo also passed. |
+| Two finite CPU-consuming children, one-second aggregate budget | PASS: tree terminated with `cpu_limit`, exit 124; ARM64 1,033,436 µs / x86_64 1,060,262 µs aggregate CPU. No action cgroups remained. Sampling overshoot is visible. |
+| Kill daemon while shell and two 20-second sleeping descendants are active | PASS on ARM64: cgroup reported `populated 0` after daemon SIGKILL; restart reconciled the cgroup and became ready. No exhaustive race claim. |
+| Tighten with `untrusted_repository`, stop and restart daemon | PASS on ARM64: guarded mode persisted. The event is a client report, not a kernel observation. |
+| Protected x86 workspace write; outside dummy and symlink reads | PASS: legitimate write succeeded; both outside reads returned EACCES (13). |
+| x86 TCP/UDP/IPv6/Unix socket creation | PASS: each returned EPERM (1). This run did not establish a positive network workflow or repeat the earlier listener/package scenario. |
+| At most twelve 1 MiB files on an 8 MiB dedicated x86 tmpfs | PASS: ENOSPC (28); guest `df -B1` confirmed 8,388,608-byte capacity fully used. Only enumerated disposable files were removed afterward. The quota is an administrator-prepared volume limit, not a KECHAA disk-quota provisioner. |
+| Bundle export and verification against signed checkpoint | PASS: ARM64 94-record bundle verified in the guest and using the installed macOS CLI. Removing the final record of an earlier 56-record bundle caused `audit_head` rejection. |
+| Live export concurrent with ten bounded prepares | PASS on x86: bundle stayed at checkpoint sequence 36 while live sequence reached 45; exact-prefix verification passed. |
+| Protected source installation with non-root-owned extracted source | PASS as a safety refusal. The operator re-extracted the trusted transfer as root-owned guest source; installation then succeeded. No ownership control was disabled. |
+| Manifest-based removal | PASS on ARM64; stopped redundant installation removed. Fresh packaged macOS installation/removal also operated; unrelated sentinel preserved. |
+| Real harness session, native macOS containment, full kernel effect collection | BLOCKED / NOT IMPLEMENTED. These remain production release blockers. |
+| Approved online networking or renewable leases | NOT APPLICABLE to the offline profile; not implemented. |
+
+Representative x86 lifecycle times were 576 ms for echo, 720 ms for the combined
+filesystem/socket command, 766 ms for the bounded disk operation and 556 ms for
+read-only echo. The two-child CPU workload ended after 1564 ms (ARM64 1474 ms).
+These are individual software-emulated observations, not native overhead estimates,
+statistical benchmarks or measured false-block percentages. No new test files,
+suites, fuzzers or benchmark frameworks were written.
+
+Reproduce the operator flow in a prepared disposable guest: install with `-IS`,
+initialize/validate the YAML policy, start `daemon --experimental-linux` with the
+separate UID/group and cgroup subtree, open the confirmed contract, then use
+`prepare`, administrator `grant show`/`grant approve`, and `exec` with identical
+argv/cwd/inputs. Set `input_integrity` and `write` in the contract as described
+in operations.md. Change `profiles.development.limits.cpu_seconds` via reviewed
+`policy import` for the bounded CPU exercise. Export with `audit bundle` and
+verify with `audit verify --file ... --public-key ... --checkpoint ...`.
+
+Raw serial commands, fixture actions, transfer digests, results and public
+signed bundles are retained locally under `.local/audit-fixes/` and excluded
+from source release artifacts. The ARM64 final bundle head is
+`ce8a1dec7b4aed0a88bbcd0e2f52e08c0ee5a6f7b9cb2d0e981c7ad90c710a7a` (94 records).
+Its installed program manifest was
+`0c32a630a2aa42bfc8eb46ce3f65f3f04bc54e17e8f3fbb766a3b276b943c3d7`.
+A subsequent preflight message change removes the obsolete ARM64-only wording;
+it changes no enforcement behavior. The rebuilt source archive has its own
+checksum. Historical observations above remain historical, rather than claims
+that every older scenario was repeated for this commit.
+
+The x86 final public bundle contains 45 records with signed head
+`658ef12ca9cfe83cc78f46c6249e2b43a5252ab296142f7c0546489cd38a057f`;
+its signatures/checkpoint also verified using the installed macOS CLI. Both VMs
+were stopped after daemon shutdown, confirmed empty action cgroups and guest sync.
+The source archive contains 43 intended members; consecutive builds matched
+byte-for-byte and all internal SHA-256 manifest entries verified. Installation
+from the extracted archive, policy validation, manifest verification and removal
+passed on macOS, with an unrelated sentinel preserved. PDF, lab data, private
+state and keys were excluded. No release signature is claimed.

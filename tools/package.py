@@ -11,7 +11,7 @@ import tomllib
 root = Path(__file__).resolve().parent.parent
 project = tomllib.loads((root / 'pyproject.toml').read_text())['project']
 version = project['version']
-files = [root / name for name in ("README.md", "LICENSE", "SECURITY.md", "pyproject.toml", "requirements.txt", "requirements-linux-arm64-cp313.lock", ".gitignore", "bin/kechaa")]
+files = [root / name for name in ("README.md", "LICENSE", "SECURITY.md", "pyproject.toml", "requirements.txt", "requirements-linux-arm64-cp313.lock", "requirements-linux-x86_64-cp313.lock", ".gitignore", "bin/kechaa")]
 for directory, pattern in (("kechaa", "*.py"), ("tools", "*.py"), ("docs", "*.md"), ("examples", "*.yaml"), ("examples", "*.json")):
     files.extend((root / directory).rglob(pattern))
 destination = root / "dist"

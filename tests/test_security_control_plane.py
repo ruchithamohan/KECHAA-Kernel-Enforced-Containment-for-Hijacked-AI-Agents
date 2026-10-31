@@ -52,9 +52,10 @@ class SecurityControlPlaneTests(unittest.TestCase):
         }
         return load(yaml.safe_dump(document), "<test-policy>")
 
-    def _open_run(self, session="session", lifetime=60):
+    def _open_run(self, session="session", lifetime=60, uid=None):
+        target = self.uid if uid is None else uid
         contract = {"roots": [str(self.root)], "executables": ["/bin/echo", "/bin/cat"], "write": True, "lifetime_seconds": lifetime}
-        return self.engine.open_run({"uid": self.uid, "session": session, "contract": contract, "confirmed": True}, self.uid, True)
+        return self.engine.open_run({"uid": target, "session": session, "contract": contract, "confirmed": True}, self.uid, True)
 
     def test_history_records_prepare_and_simulate(self):
         run = self._open_run()
@@ -173,7 +174,8 @@ class SecurityControlPlaneTests(unittest.TestCase):
 
     def test_cross_agent_session_cannot_read_or_modify_other_run(self):
         run_a = self._open_run("agent-a")
-        run_b = self._open_run("agent-b")
+        other_uid = self.uid + 1
+        run_b = self._open_run("agent-b", uid=other_uid)
         with self.assertRaises(KechaaError) as ctx:
             self.engine.history({"run": run_a["run"], "session": "agent-b"}, self.uid)
         self.assertEqual(ctx.exception.code, "run_binding")
@@ -181,7 +183,7 @@ class SecurityControlPlaneTests(unittest.TestCase):
             self.engine.tool_request({"run": run_a["run"], "session": "agent-b", "tool": "FileRead",
                                       "effects": {"network": "offline", "read": [str(self.root)], "write": []}}, self.uid)
         self.assertEqual(ctx.exception.code, "run_binding")
-        self.assertEqual(self.engine.run(run_b["run"], "agent-b", self.uid)["id"], run_b["run"])
+        self.assertEqual(self.engine.run(run_b["run"], "agent-b", other_uid)["id"], run_b["run"])
 
     def test_history_persists_across_engine_restart(self):
         run = self._open_run()

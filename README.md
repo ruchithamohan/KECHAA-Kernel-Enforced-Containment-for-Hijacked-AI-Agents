@@ -7,16 +7,15 @@ Thin adapters share the same YAML policy engine and local API.
 
 **KECHAA 0.2.0a1 is an experimental Linux containment alpha, not production-ready.**
 PR #11 adds supervised agent launch, history-aware controls, MCP effect-contract
-authorization and a fail-closed Linux certification harness. The current
-certification gate remains open: LC-001 through LC-013 must still be executed in
-a disposable Linux VM before KECHAA claims Linux whole-agent containment. The
-[operational report](docs/completion.md) is historical validation context; the
-current gate is tracked in `audit/KECHAA_LINUX_CERTIFICATION_READINESS.md`.
+authorization, audit anchoring and a fail-closed Linux certification harness.
+Current mainline validation also records Linux VM operation for offline command
+and package workflows, filesystem and network denials, approval binding,
+descendant cleanup and daemon-loss handling. No readiness percentage is claimed.
 
 | Platform | Available | Execution boundary |
 |---|---|---|
-| Linux ARM64 | CLI, daemon, policies, grants, audit and experimental launcher | Target platform; LC-001..LC-013 certification still pending in a disposable VM |
-| Linux x86_64 | Same implementation and syscall table | Kernel execution remains UNVERIFIED |
+| Linux ARM64 | CLI, daemon, policies, grants, audit and experimental launcher | Exercised on Debian 13 / Linux 6.12.113; dedicated workspace filesystem required |
+| Linux x86_64 | CLI, daemon and experimental launcher | Basic Debian 13 / Linux 6.12.113 scenarios operated; broader coverage unverified |
 | macOS | CLI, policies, diagnostic grant/state/audit operations | Native protected execution disabled; Linux VM operation is not native macOS containment |
 
 The Linux profile is **offline only**. It requires Landlock ABI 6+, seccomp,
@@ -33,9 +32,9 @@ Use a reviewed Python 3.11+ environment with the pinned dependencies in
 services, edits shell profiles, changes PATH, or prepares kernel controls.
 
 ```bash
-python tools/install.py install --prefix ./installation --python /absolute/path/to/python
+python -IS tools/install.py install --prefix ./installation --python /absolute/path/to/python
 ./installation/bin/kechaa version
-python tools/install.py verify --prefix ./installation
+python -IS tools/install.py verify --prefix ./installation
 ./installation/bin/kechaa doctor
 ```
 
@@ -62,15 +61,19 @@ Linux VM, follow [installation and operations](docs/operations.md), then the
   executable/input digests and expiry; atomic adoption and restart invalidation.
 - Linux Landlock, seccomp, private read-only mounts, namespaces, privilege dropping,
   cgroup limits, bounded output, expiry and descendant termination.
-- Persistent contracts, session expiry and label-driven monotonic tightening.
+- Persistent contracts, one live session per OS UID, expiry and label-driven monotonic tightening.
 - Signed audit records and checkpoints, verification/export, authenticated offline
-  backup and restoration into a new state directory.
+  backup and restoration into a new state directory; checkpoint-bound public evidence bundles.
 - Generic execution CLI and Local API v1; a Claude hook adapter whose real-harness
   compatibility remains unverified.
 
 A wrapper covers only actions submitted through it. Whole-agent interception,
-immutable transitive inputs, positive network permissions, renewable leases,
+immutable writable builds and arbitrary transitive inputs, positive network permissions, renewable leases,
 complete kernel effect observation and native macOS enforcement are not shipped.
+Read-only work can opt into `immutable-workspace` contracts on administrator-prepared
+read-only volumes. Startup disables Python site hooks and checks root ownership
+of application and dependency files. Aggregate CPU budgets cover descendants.
+See the [audit follow-up](docs/completion.md#audit-handoff-hardening) for actual use and remaining gaps.
 Labels can tighten policy; they do not establish observed-effect drift or intent.
 
 ## Guides and release artifacts

@@ -52,7 +52,7 @@ class Server:
 
     async def terminate_worker(self, process, group) -> list[str]:
         """Attempt both kill paths and a bounded reap, even if one path fails."""
-        from .backends.linux import kill_group
+        from .backends.linux import kill_group, populated
         failures = []
         try:
             kill_group(group)
@@ -75,6 +75,18 @@ class Server:
                     await process.wait()
             except (OSError, TimeoutError):
                 failures.append("supervisor_reap_incomplete")
+        try:
+            deadline = time.monotonic() + 5
+            while populated(group):
+                if time.monotonic() >= deadline:
+                    failures.append("cgroup_still_populated")
+                    break
+                await asyncio.sleep(0.02)
+        except FileNotFoundError:
+            if process is None or process.returncode is None:
+                failures.append("cgroup_disappeared_before_reap")
+        except (OSError, ValueError, KechaaError):
+            failures.append("cgroup_population_unknown")
         if failures:
             self.unhealthy = True
         return failures
@@ -133,8 +145,8 @@ class Server:
 
     async def execute(self, data: dict, uid: int) -> dict:
         require(not self.engine.diagnostic, "execution_unavailable", "Diagnostic mode never executes a command. Kernel enforcement is unavailable in this mode.", "compatibility_block")
-        require(not self.execution_reserved, "execution_busy", "Another action is in mandatory-startup handoff; retry after it enters its cgroup or fails closed.", "operational_error")
-        from .backends.linux import cgroup_create, kill_group
+        require(not self.active and not self.execution_reserved, "execution_busy", "This experimental backend permits one active action at a time; retry after it ends.", "operational_error")
+        from .backends.linux import cgroup_create, kill_group, cpu_usage
         self.execution_reserved = True
         try:
             body = self.engine.consume(data, uid, simulation=False)
@@ -155,7 +167,7 @@ class Server:
             worker_path = str(Path(__file__).resolve().with_name("worker.py"))
             config = {"uid": uid, "parent": os.getpid(), "cgroup": str(group), "grant": body, "status_fd": write_status}
             process = await asyncio.create_subprocess_exec(
-                sys.executable, "-I", worker_path, stdin=asyncio.subprocess.PIPE,
+                sys.executable, "-IS", worker_path, stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
                 env={"PATH": "/usr/bin:/bin", "LANG": "C"}, close_fds=True, pass_fds=(write_status,))
             os.close(write_status)
@@ -193,12 +205,26 @@ class Server:
 
             task_out = asyncio.create_task(collect(process.stdout))
             task_err = asyncio.create_task(collect(process.stderr))
-            collectors = [task_out, task_err]
+
+            async def wait_with_cpu_budget():
+                # RLIMIT_CPU alone is per process. Account for the supervisor and
+                # every descendant through the kernel's aggregate cgroup counter.
+                limit = body["effects"]["limits"]["cpu_seconds"] * 1000000
+                while process.returncode is None:
+                    if cpu_usage(group) >= limit:
+                        raise KechaaError("cpu_limit", "Aggregate process-tree CPU budget exceeded; the action was terminated.")
+                    await asyncio.sleep(0.05)
+                if cpu_usage(group) >= limit:
+                    raise KechaaError("cpu_limit", "Aggregate process-tree CPU budget exceeded at exit.")
+                return await process.wait()
+
+            task_wait = asyncio.create_task(wait_with_cpu_budget())
+            collectors = [task_out, task_err, task_wait]
             try:
                 remaining = min(body["effects"]["limits"]["wall_seconds"],
-                                self.engine.deadlines[body["id"]] - time.monotonic())
+                                self.engine.deadlines.get(body["id"], 0) - time.monotonic())
                 async with asyncio.timeout(max(0.001, remaining)):
-                    stdout, stderr, exit_code = await asyncio.gather(task_out, task_err, process.wait())
+                    stdout, stderr, exit_code = await asyncio.gather(task_out, task_err, task_wait)
                 result.update(exit_code=exit_code, termination="exited", stdout=base64.b64encode(stdout).decode("ascii"),
                               stderr=base64.b64encode(stderr).decode("ascii"), output_bytes=count)
             except (TimeoutError, KechaaError) as exc:
@@ -483,6 +509,8 @@ async def serve(state: Path, sockets: Path, policy_file: Path | None, diagnostic
                 cgroup_root: str, agent_group: int | None, duration: int) -> None:
     os.umask(0o077)
     if not diagnostic:
+        require(sys.flags.isolated and sys.flags.no_site, "python_startup",
+                "Protected execution requires the installed -IS entrypoint; Python site hooks must be disabled.", "compatibility_block")
         require(platform.system() == "Linux", "backend_unavailable", "Native macOS protected execution is unavailable; use diagnostic mode.", "compatibility_block")
         report = preflight(cgroup_root)
         require(report["execution_available"], "preflight_failed", "Mandatory prerequisites failed: " + "; ".join(report["failures"]), "compatibility_block")

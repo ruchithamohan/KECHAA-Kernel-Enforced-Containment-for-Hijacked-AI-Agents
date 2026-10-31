@@ -1,0 +1,7 @@
+# Operated wheel set: CPython 3.13, Linux x86_64 (manylinux).
+# Other platforms need their own reviewed wheel inventory.
+--only-binary=:all:
+PyYAML==6.0.3 --hash=sha256:0f29edc409a6392443abf94b9cf89ce99889a1dd5376d94316ae5145dfedd5d6
+cryptography==48.0.1 --hash=sha256:f0d27a5696721ef7a672b8c810f6aded391058e0b9486e63e6d93baf765da691
+cffi==2.0.0 --hash=sha256:c8d3b5532fc71b7a77c09192b4a5a200ea992702734a2e9279a37f2478236f26
+pycparser==3.0 --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992

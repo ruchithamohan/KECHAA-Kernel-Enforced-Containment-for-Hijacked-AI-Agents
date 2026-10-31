@@ -18,12 +18,12 @@ diagnostic/control-plane tools only; protected execution is disabled.
 | Descendant termination, session expiry, cancellation and daemon crash | PASS for bounded documented scenarios; exhaustive race validation not established |
 | Local offline package build/install/import | PASS for pip 26.0.1 and the disposable PEP 517 fixture |
 | Signed audit, checkpoint, tamper rejection, backup/restore | PASS for exercised operations; independently operated remote anchoring absent |
-| Performance | Measured under software-emulated ARM64; not native production benchmarks |
+| Performance | Measured under software-emulated ARM64 and x86_64; not native production benchmarks |
 | Real AI-harness session and mandatory interception | BLOCKED / NOT IMPLEMENTED |
-| Linux x86_64 execution / native macOS execution | UNVERIFIED / DISABLED |
+| Linux x86_64 execution / native macOS execution | PASS for bounded Debian VM scenarios / DISABLED |
 | Enterprise release | BLOCKED |
 
-See completion.md for commands and observations. Historical 0.1 observations
+See completion.md, including its audit-handoff hardening section, for commands and observations. Historical 0.1 observations
 remain in validation.md. Passing a finite lab scenario is not proof against all
 races, future syscalls, malformed dependencies or hostile concurrent tenants.
 
@@ -36,17 +36,17 @@ scores or claims that each item is a demonstrated exploit.
 |---|---|---|
 | Critical | Whole-agent baseline and mandatory interception absent | Protect harness settings and every execution path; verify a real pinned harness session and fail-closed hook behavior |
 | Critical | Native macOS containment absent | Independently validate a supported macOS boundary or define a VM-backed macOS product with an explicit host/guest contract |
-| High | Mutable scripts/transitive inputs are not frozen | Snapshot or content-addressed execution inputs; adversarial mutation and concurrent-writer review |
+| High | Writable builds and arbitrary transitive inputs are not frozen | Optional read-only workspace contract operated on ARM64/x86_64; snapshots for writable builds and runtime attestation still needed |
 | High | Kernel attempted/observed-effect stream absent | Reliable observation and loss accounting before claiming complete effect evidence or observed-effect drift |
-| High | Narrow platform and filesystem coverage | Validate x86_64, broaden ext4 coverage, distribution variants, namespace/mount failure paths and native performance |
-| High | Lifecycle/resource race coverage incomplete | Independent review of mount, pidfd, PID namespace, cgroup and cancellation races; broaden the bounded OOM/pids checks and verify aggregate disk exhaustion safely |
+| High | Narrow platform and filesystem coverage | Basic x86_64 Debian 13 scenarios now operated; broaden ext4, distribution, namespace/mount failure paths and native performance |
+| High | Lifecycle/resource race coverage incomplete | Aggregate CPU accounting, confirmed cgroup emptiness, crash recovery and bounded tmpfs disk exhaustion operated; independent race review and broader OOM/pids coverage remain |
 | High | No approved online workflow or renewable lease | Design and validate destination-specific networking, DNS/UDP/IPv6/IPC and live termination before enabling them |
-| High | Incomplete trusted dependency/build attestation | Complete native dependency SBOM/notices, import-chain ownership and provenance, authenticated release artifacts, independent security review |
-| High | Enterprise operations incomplete | Independently controlled audit forwarding/anchoring, retention/rotation, distribution, administrator role separation and release-key operations |
-| High | Same-UID sessions are not separate hostile identities | Whole-agent/process identity design; availability protection for concurrent tenants |
+| High | Incomplete trusted dependency/build attestation | Site hooks disabled and application/dependency ownership checked; complete native SBOM/build provenance, release signing and independent security review remain |
+| High | Enterprise operations incomplete | Verified public evidence bundles now available; independently controlled forwarding/anchoring, retention, distribution, role separation and release-key operations remain |
+| High | Same-UID sessions are not separate hostile identities | One live session per OS UID and per-run admission cap now enforced; unconfined same-UID peers remain one trust domain and multitenant isolation is not supplied |
 
 The new dedicated-filesystem prerequisite closes the demonstrated cross-root
-hardlink case for the supported mount contract. It does not freeze workspace
+hardlink case for the supported mount contract. Default recheck mode does not freeze workspace
 contents or prevent destructive operations that were authorized inside that root.
 Tmpfs received the main scenarios; a basic dedicated ext4 write/chmod/read workflow also passed.
 
@@ -121,7 +121,6 @@ gh release view v0.2.0a1 --json url,isDraft,isPrerelease,tagName,assets
 ```
 
 Do not publish if a comparison fails. These are maintainer instructions, not
-claims that a tag or GitHub pre-release already exists. Keep this alpha's Linux
-ARM64 lab evidence separate from unverified x86_64, real harness integration,
-mandatory whole-agent interception, immutable inputs, complete effect observation
-and native macOS containment.
+claims that a tag or GitHub pre-release already exists. Keep the finite ARM64/x86_64 lab observations separate from real harness integration,
+mandatory whole-agent interception, immutable writable builds, complete effect
+observation and native macOS containment, which remain unresolved.

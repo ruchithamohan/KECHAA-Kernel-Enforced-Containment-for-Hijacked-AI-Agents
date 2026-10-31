@@ -3,7 +3,8 @@
 One security engine serves every integration. A harness adapter reports an action;
 it cannot grant itself authority. Ordinary OS UID checks are authoritative.
 Run/session strings are binding context, not independent authenticated identities
-between hostile processes sharing the same UID.
+between hostile processes sharing the same UID. A second live session for a UID
+is refused with `identity_in_use`; separate hostile tenants need separate OS accounts.
 
 ## Local API v1
 
@@ -46,7 +47,9 @@ review and grant-state inspection, not to protect a harness.
 
 An administrator first inspects a contract JSON containing project roots,
 expected executable paths (including ELF loaders), a `write` boolean and an
-optional `lifetime_seconds` (default 3600), then confirms it:
+optional `lifetime_seconds` (default 3600), then confirms it.
+`input_integrity` defaults to `recheck`. Optional `immutable-workspace` requires
+`write:false` and dedicated read-only filesystems; diagnostics refuse this mode:
 
 ```bash
 kechaa --admin-socket /run/kechaa/admin.sock run open \
@@ -115,7 +118,7 @@ processes and full MCP server protocol proxying are not claimed as protected.
 | Integration | Translation code | Real operation verified | Scope |
 |---|---|---|---|
 | Generic CLI and diagnostic console, Python 3.14.8/macOS Darwin 27 | Implemented | Installation, policies, grants and audit console | No execution |
-| Local Unix API, Debian ARM64 | Implemented | Real sockets, UID roles, execution, restart and cancellation exercised | Root daemon; UID 1001 actions in disposable VM |
+| Local Unix API, Debian ARM64/x86_64 | Implemented | Real sockets, UID roles, execution, restart and cancellation exercised | Root daemon; UID 1001 actions in disposable VM |
 | Local Unix API, macOS | Implemented | BLOCKED: socket bind denied by host sandbox | macOS peer credentials remain unverified |
 | Claude hook API | Implemented against inspected public docs | UNVERIFIED; no installed version | Bash rewriting and explicit administrator approval |
 | Codex CLI | Generic wrapper path only | UNVERIFIED | No native hook adapter or settings changes |
@@ -147,7 +150,7 @@ A lost response means the caller must inspect state, not replay the grant.
 Persist the run/session identifiers across harness restarts. `run_get` returns the
 stored mode and contract; do not create a fresh session automatically to evade
 posture. Only the administrative socket can confirm a new contract or relax mode.
-Legacy unbounded sessions close on upgrade. Remote MCP effects and hook disablement
+Legacy unbounded sessions and all conflicting same-UID live sessions close on upgrade. Remote MCP effects and hook disablement
 remain outside the product's OS boundary.
 
 Protected `execute` and hook requests also require a root server peer. A same-user

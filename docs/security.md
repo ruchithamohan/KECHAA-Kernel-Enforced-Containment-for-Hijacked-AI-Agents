@@ -1,9 +1,9 @@
 # Security model and trust boundaries
 
 This document defines the implementation boundary. Executed scenarios and their
-limits are in [completion.md](completion.md). Linux ARM64 operation was performed
-in a disposable VM. Native macOS execution is disabled; x86_64 kernel operation
-and exhaustive race coverage remain unverified.
+limits are in [completion.md](completion.md). Linux ARM64 and x86_64 operations were performed
+in disposable VMs. Native macOS execution is disabled; broad distribution and
+exhaustive race coverage remain unverified.
 
 ## Authority and trusted components
 
@@ -14,13 +14,19 @@ access the agent socket; the administrator socket is mode 0600. Linux SO_PEERCRE
 supplies the caller UID. Administrative operations require both the administrator
 socket and daemon-owner UID. An agent-supplied approval flag cannot substitute.
 Same-UID session strings provide binding context, not hostile process identity.
+A partial unique database index permits only one live session per UID. Upgrades
+close all ambiguous conflicting sessions; this does not isolate unconfined
+processes sharing that UID. Pending authority is capped at 16 grants per run.
 
 Diagnostic mode executes no actions and does not isolate its own OS user. The
 Linux launcher is daemon-started in a fresh isolated Python interpreter. The
 agent cannot opt out of mandatory controls or request arbitrary privileged
 commands. Source/interpreter/administrative path ancestors are checked for root
-ownership and non-writability. These checks occur after interpreter startup and
-do not constitute complete dependency/import-chain attestation.
+ownership and non-writability. The standalone installed launcher checks application
+entries, including cached bytecode, before application import. `-IS` disables site
+hooks and inherited import paths. Bootstrap validates dependency ownership, types
+and pinned versions before third-party import. Interpreter/stdlib startup remains
+trusted; ownership checks do not constitute native build attestation.
 
 ## Approval encoding and integrity
 
@@ -46,7 +52,12 @@ artifacts before execution. Grant expiry is bounded by policy, scoped permission
 and session expiry, with monotonic checks in the running daemon. Restart revokes
 unused/adopted/running authority. A lost response never refunds a consumed grant.
 
-These checks do **not** freeze scripts, mapped libraries or all transitive inputs.
+The default `recheck` mode does **not** freeze scripts, mapped libraries or all
+transitive inputs. Optional `immutable-workspace` contracts require dedicated
+workspace filesystems mounted read-only, including their superblock, before
+approval and again at launch. Unconfined non-root writers receive EROFS on those
+volumes. No snapshots are created; writable builds and runtime files outside
+those volumes remain outside this immutability guarantee.
 An interpreter can evaluate arbitrary program text inside its capability envelope.
 Unconfined processes sharing the action UID can mutate workspace data. Approval
 of an effect envelope is not proof that its allowed effects are benign.
@@ -87,7 +98,9 @@ channels; reading an allowed file may disclose it through these channels.
 
 PID namespace teardown, reapplied parent-death signals and a pidfd race check
 cover supervisor loss. cgroup.kill supplies independent termination and restart
-reconciliation. CPU/memory/pids/output/wall/per-file limits bound actions. Disk
+reconciliation. CPU/memory/pids/output/wall/per-file limits bound actions. Aggregate CPU accounting
+uses the cgroup counter sampled every 50 ms, with scheduling-dependent overshoot,
+alongside per-process RLIMIT_CPU. Cleanup confirms an empty cgroup before removal. Disk
 capacity must also be bounded by the prepared volume; file-size limits alone do
 not limit cumulative disk use. Leases and live permission widening are unavailable.
 
@@ -117,7 +130,9 @@ Each bounded audit record has sequence, time, actor, previous hash and an Ed2551
 signature in the KECHAA-AUDIT-1 domain. Signed checkpoints authenticate selected
 heads. Independently retained public keys/checkpoints are required to detect
 truncation or whole-state rollback. A local root/key holder can replace the entire
-history; the log is not immutable. Remote forwarding is not implemented.
+history; the log is not immutable. Public evidence bundles verify a checkpointed
+prefix during export and omit private keys. Independently operated forwarding
+and anchoring remain deployment requirements.
 
 State changes and associated records share transactions. Corrupt live evidence
 holds readiness/admission and is not appended to after detected corruption. Full
