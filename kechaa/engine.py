@@ -209,14 +209,19 @@ class Engine:
         reads = [path_string(path) for path in effects.get("read", [])]
         writes = [path_string(path) for path in effects.get("write", [])]
         network = effects.get("network", "offline")
+        kind = effects.get("kind")
         require(isinstance(effects.get("read", []), list) and isinstance(effects.get("write", []), list),
                 "tool_effects", "Tool read/write effects must be path lists.", "invalid_request")
         require(network in ("offline", "external"), "tool_network", "Tool network effect must be offline or external.", "invalid_request")
+        require(kind is None or kind in ("mcp_effect_contract", "file_effect_contract"),
+                "tool_effect_kind", "Unsupported tool effect contract kind.", "invalid_request")
         sensitive = set(self.policy.document["sensitive"])
         home = pwd.getpwuid(uid).pw_dir.rstrip("/")
         sensitive |= {home + suffix for suffix in ("/.ssh", "/.aws", "/.azure", "/.kube", "/.config/gcloud", "/.claude", "/.codex")}
-        if tool in ("WebFetch", "WebSearch") or tool.startswith("mcp__") or network == "external":
+        if tool in ("WebFetch", "WebSearch") or network == "external":
             decision, reason, risk = "deny", "External web/MCP/network tool effects are unsupported by this offline profile and fail closed.", min(100, row["score"] + 20)
+        elif tool.startswith("mcp__") and kind != "mcp_effect_contract":
+            decision, reason, risk = "deny", "MCP tool effects require a trusted explicit effect contract and fail closed without one.", min(100, row["score"] + 20)
         elif any(any(within(path, item) or within(item, path) for item in sensitive) for path in reads + writes):
             decision, reason, risk = "deny", "Tool effects overlap sensitive credential/configuration paths.", min(100, row["score"] + 60)
         elif any(not any(within(path, root) for root in contract["roots"]) for path in reads + writes):

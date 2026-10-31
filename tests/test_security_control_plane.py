@@ -147,6 +147,30 @@ class SecurityControlPlaneTests(unittest.TestCase):
                                            "effects": {"network": "offline", "read": [], "write": [str(self.root / "out.txt")]}}, self.uid)
         self.assertEqual(result["decision"], "ask")
 
+    def test_mcp_requires_explicit_effect_contract(self):
+        run = self._open_run()
+        result = self.engine.tool_request({"run": run["run"], "session": "session", "tool": "mcp__files__read",
+                                           "effects": {"network": "offline", "read": [str(self.root)], "write": []}}, self.uid)
+        self.assertEqual(result["decision"], "deny")
+        self.assertIn("effect contract", result["reason"])
+
+    def test_mcp_effect_contract_allows_only_in_scope_offline_effects(self):
+        run = self._open_run()
+        allowed = self.engine.tool_request({"run": run["run"], "session": "session", "tool": "mcp__files__read",
+                                            "effects": {"kind": "mcp_effect_contract", "network": "offline", "read": [str(self.root)], "write": []}}, self.uid)
+        self.assertEqual(allowed["decision"], "allow")
+        denied = self.engine.tool_request({"run": run["run"], "session": "session", "tool": "mcp__files__read",
+                                           "effects": {"kind": "mcp_effect_contract", "network": "offline", "read": [str(Path.home())], "write": []}}, self.uid)
+        self.assertEqual(denied["decision"], "deny")
+        self.assertTrue(denied["terminate_active"])
+
+    def test_mcp_effect_contract_denies_external_network(self):
+        run = self._open_run()
+        result = self.engine.tool_request({"run": run["run"], "session": "session", "tool": "mcp__browser__fetch",
+                                           "effects": {"kind": "mcp_effect_contract", "network": "external", "read": [], "write": []}}, self.uid)
+        self.assertEqual(result["decision"], "deny")
+        self.assertIn("External", result["reason"])
+
     def test_cross_agent_session_cannot_read_or_modify_other_run(self):
         run_a = self._open_run("agent-a")
         run_b = self._open_run("agent-b")

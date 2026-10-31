@@ -145,6 +145,14 @@ def parser() -> argparse.ArgumentParser:
     q.add_argument("--read", action="append", default=[])
     q.add_argument("--write", action="append", default=[])
     q.add_argument("--network", choices=("offline", "external"), default="offline")
+    q = sub.add_parser("mcp-check", help="Authorize an MCP tool only from a trusted explicit effect contract; does not execute MCP servers")
+    q.add_argument("--run", required=True)
+    q.add_argument("--session", required=True)
+    q.add_argument("--server", required=True)
+    q.add_argument("--tool", required=True)
+    q.add_argument("--read", action="append", default=[])
+    q.add_argument("--write", action="append", default=[])
+    q.add_argument("--network", choices=("offline", "external"), default="offline")
     q = sub.add_parser("checkpoint", help="Administrator-only posture change; preserves labels and audit history")
     q.add_argument("--run", required=True)
     q.add_argument("--mode", choices=("normal", "guarded", "lockdown"), required=True)
@@ -345,6 +353,13 @@ def handle(args) -> int:
     elif cmd == "tool-check":
         output(call(args.socket, "tool_request", {"run": args.run, "session": args.session, "tool": args.tool,
                "effects": {"read": [str(Path(p).resolve()) for p in args.read],
+                           "write": [str(Path(p).resolve()) for p in args.write], "network": args.network}}))
+    elif cmd == "mcp-check":
+        require(args.server.replace("_", "").replace("-", "").isalnum() and args.tool.replace("_", "").replace("-", "").isalnum(),
+                "mcp_name", "MCP server and tool names must be bounded alphanumeric identifiers.", "invalid_request")
+        output(call(args.socket, "tool_request", {"run": args.run, "session": args.session,
+               "tool": f"mcp__{args.server}__{args.tool}",
+               "effects": {"kind": "mcp_effect_contract", "read": [str(Path(p).resolve()) for p in args.read],
                            "write": [str(Path(p).resolve()) for p in args.write], "network": args.network}}))
     elif cmd == "checkpoint":
         output(call(args.admin_socket, "checkpoint", {"run": args.run, "mode": args.mode, "reason": args.reason}))

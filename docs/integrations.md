@@ -98,14 +98,17 @@ This is intentionally independent of the harness's auto-approval setting.
 Recognized wrappers must match every expected token and are re-quoted before use.
 An altered wrapper cannot authorize another action.
 
-Web/MCP requests tighten the run and are denied because this adapter cannot
-confine their non-shell effects. Other tool types and background Bash requests
-are denied with compatibility explanations. SessionEnd closes the run. No
-post-execution hook output is treated as kernel evidence.
+Web requests and external-network tool effects tighten the run and are denied in
+the offline profile. MCP effects are supported only through a trusted explicit
+effect contract (`mcp_effect_contract`) naming offline read/write effects;
+uncontracted MCP execution fails closed. Other tool types and background Bash
+requests are denied with compatibility explanations. SessionEnd closes the run.
+No post-execution hook output is treated as kernel evidence.
 
 Hook failure or disablement in the harness is outside this adapter's guarantee.
-Whole-agent containment and managed-settings integrity are deployment prerequisites
-for claiming mandatory interception; KECHAA does not currently supply that baseline.
+Mandatory interception requires deploying supported agents through `kechaa agent
+launch` and completing Linux certification for that environment. Direct host
+processes and full MCP server protocol proxying are not claimed as protected.
 
 ## Compatibility matrix
 
@@ -117,7 +120,7 @@ for claiming mandatory interception; KECHAA does not currently supply that basel
 | Claude hook API | Implemented against inspected public docs | UNVERIFIED; no installed version | Bash rewriting and explicit administrator approval |
 | Codex CLI | Generic wrapper path only | UNVERIFIED | No native hook adapter or settings changes |
 | Gemini CLI | Generic wrapper path only | UNVERIFIED | No native hook adapter |
-| MCP/non-shell tool effects | Not implemented | Unsupported | Adapter denies these operations |
+| MCP/non-shell tool effects | Effect-contract authorization implemented; full protocol proxy not implemented | Unit tests only; Linux certification blocked on macOS | Explicit offline MCP effects may be allowed; uncontracted/external effects fail closed |
 
 Additional adapters should translate to Local API v1, document cancellation,
 resume, input rewriting and interception guarantees for their exact version,

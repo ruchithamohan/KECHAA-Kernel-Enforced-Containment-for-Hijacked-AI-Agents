@@ -106,8 +106,8 @@ not limit cumulative disk use. Leases and live permission widening are unavailab
 | Signal/trace/escalate | UID drop, no_new_privs, namespace visibility, Landlock scope and syscall limits | Controls installed; exhaustive signal/trace/capability scenarios not performed |
 | Agent self-approval or policy relaxation | Separate administrative socket/UID, strict parser, transactional policy state | Agent approval/checkpoint denied, admin socket DAC denied, malformed activation preserved active version |
 | Context compaction, restart or stale history | Persistent bounded contract, mode/labels/revision; restart invalidation | Guarded mode, policy and audit retained; no inference of malicious intent |
-| Hook disablement or unwrapped/remote MCP tool | Whole-agent boundary is absent | Not protected; adapter-only deployment cannot claim mandatory interception |
-| Malformed IPC/concurrency/resource pressure | Strict bounded JSON, deadlines/backpressure, one active execution | Duplicate/oversized requests and busy execution exercised; full hostile multitenant availability not established |
+| Hook disablement or unwrapped/remote MCP tool | Supported agents must enter through `kechaa agent launch`; MCP/web/external effects fail closed unless an explicit offline effect contract is authorized | Direct host processes outside the launcher and full MCP protocol proxying remain outside the certified boundary until Linux LC tests pass |
+| Malformed IPC/concurrency/resource pressure | Strict bounded JSON, deadlines/backpressure, serialized startup handoff and per-grant active workers | Duplicate/oversized requests exercised; Linux concurrent-agent isolation still requires disposable VM certification |
 | Daemon/audit failure | No fallback, durable state, cleanup, startup verification | Crash/recovery and corrupted disposable evidence operated; complete machine failure and power-loss durability not verified |
 | Supply-chain or release substitution | Pinned dependencies, explicit packaging inventory, checksums | Wheel checksums operated; native provenance and authenticated public releases remain blockers |
 
