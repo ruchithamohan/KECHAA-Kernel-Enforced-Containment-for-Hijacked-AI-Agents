@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "destructive": false,
+  "scenarios": [
+    {
+      "id": "LC-001",
+      "issue": 2,
+      "name": "allowed_echo",
+      "expected": "approved echo exits 0 inside workspace"
+    },
+    {
+      "id": "LC-002",
+      "issue": 2,
+      "name": "outside_secret_read_denied",
+      "expected": "outside synthetic secret read fails at OS level"
+    },
+    {
+      "id": "LC-003",
+      "issue": 2,
+      "name": "outside_write_denied",
+      "expected": "outside write/chmod/rename fail and target remains unchanged"
+    },
+    {
+      "id": "LC-004",
+      "issue": 2,
+      "name": "network_denied",
+      "expected": "TCP UDP IPv4 IPv6 and Unix socket creation fail"
+    },
+    {
+      "id": "LC-005",
+      "issue": 2,
+      "name": "grant_replay_denied",
+      "expected": "consumed grant cannot authorize another execution"
+    },
+    {
+      "id": "LC-006",
+      "issue": 2,
+      "name": "expired_authorization_denied",
+      "expected": "expired grant or lease blocks execution"
+    },
+    {
+      "id": "LC-007",
+      "issue": 2,
+      "name": "descendant_cleanup",
+      "expected": "background and double-fork descendants are killed"
+    },
+    {
+      "id": "LC-008",
+      "issue": 2,
+      "name": "daemon_restart_recovery",
+      "expected": "restart kills stale action cgroups and rejects stale grants"
+    },
+    {
+      "id": "LC-009",
+      "issue": 1,
+      "name": "supervised_bypass_denied",
+      "expected": "direct unwrapped execution path is unavailable in supported session"
+    },
+    {
+      "id": "LC-010",
+      "issue": 3,
+      "name": "unsupported_tool_denied",
+      "expected": "MCP/web/non-shell tool without effect contract fails closed"
+    },
+    {
+      "id": "LC-011",
+      "issue": 1,
+      "name": "supervised_agent_process_tree",
+      "expected": "agent launch enters cgroup namespaces Landlock seccomp and descendants inherit restrictions"
+    },
+    {
+      "id": "LC-012",
+      "issue": 7,
+      "name": "multi_agent_separation",
+      "expected": "two launched agents receive distinct runs cgroups histories and cannot access each other's workspace"
+    },
+    {
+      "id": "LC-013",
+      "issue": 9,
+      "name": "attack_defense_demo",
+      "expected": "external malicious instruction tightens posture and subsequent action requires approval or denial"
+    }
+  ]
+}

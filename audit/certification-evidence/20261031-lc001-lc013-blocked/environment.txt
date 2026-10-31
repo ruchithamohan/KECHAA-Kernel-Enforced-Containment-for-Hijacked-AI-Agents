@@ -1,0 +1,21 @@
+Sat Oct 31 15:48:39 UTC 2026
+Darwin Ruchithas-MacBook-Pro.local 23.5.0 Darwin Kernel Version 23.5.0: Wed May  1 20:16:51 PDT 2024; root:xnu-10063.121.3~5/RELEASE_ARM64_T8103 arm64
+ProductName:		macOS
+ProductVersion:		14.5
+BuildVersion:		23F79
+uid=501(ruchithamohan) gid=20(staff) groups=20(staff),101(access_bpf),12(everyone),61(localaccounts),79(_appserverusr),80(admin),81(_appserveradm),98(_lpadmin),701(com.apple.sharepoint.group.1),33(_appstore),100(_lpoperator),204(_developer),250(_analyticsusers),395(com.apple.access_ftp),398(com.apple.access_screensharing),399(com.apple.access_ssh),400(com.apple.access_remote_ae)
+
+branch=kechaa/linux-containment-certification
+head=19c1d30d53b4db4bea3b760f386f0376060c4036
+
+virtualization tools:
+docker=/usr/local/bin/docker
+podman=lima=limactl=colima=multipass=qemu-system-aarch64=qemu-system-x86_64=vagrant=tart=Client:
+ Version:           27.3.1
+ API version:       1.47
+ Go version:        go1.22.7
+ Git commit:        ce12230
+ Built:             Fri Sep 20 11:38:18 2024
+ OS/Arch:           darwin/arm64
+ Context:           desktop-linux
+Cannot connect to the Docker daemon at unix:///Users/ruchithamohan/.docker/run/docker.sock. Is the docker daemon running?

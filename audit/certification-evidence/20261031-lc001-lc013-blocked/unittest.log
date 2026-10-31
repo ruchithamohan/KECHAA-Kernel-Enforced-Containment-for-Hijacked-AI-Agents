@@ -1,0 +1,28 @@
+test_agent_cannot_reset_history_by_engine_restart (tests.test_adversarial_control_plane.AdversarialControlPlaneTests.test_agent_cannot_reset_history_by_engine_restart) ... ok
+test_agent_identity_confusion_cannot_cross_contract_roots (tests.test_adversarial_control_plane.AdversarialControlPlaneTests.test_agent_identity_confusion_cannot_cross_contract_roots) ... ok
+test_forged_grant_id_is_rejected (tests.test_adversarial_control_plane.AdversarialControlPlaneTests.test_forged_grant_id_is_rejected) ... ok
+test_grant_replay_is_rejected (tests.test_adversarial_control_plane.AdversarialControlPlaneTests.test_grant_replay_is_rejected) ... ok
+test_audit_anchor_is_persisted_and_listed (tests.test_security_control_plane.SecurityControlPlaneTests.test_audit_anchor_is_persisted_and_listed) ... ok
+test_cross_agent_session_cannot_read_or_modify_other_run (tests.test_security_control_plane.SecurityControlPlaneTests.test_cross_agent_session_cannot_read_or_modify_other_run) ... ok
+test_history_persists_across_engine_restart (tests.test_security_control_plane.SecurityControlPlaneTests.test_history_persists_across_engine_restart) ... ok
+test_history_records_prepare_and_simulate (tests.test_security_control_plane.SecurityControlPlaneTests.test_history_records_prepare_and_simulate) ... ok
+test_lease_expiry_closes_run_and_revokes (tests.test_security_control_plane.SecurityControlPlaneTests.test_lease_expiry_closes_run_and_revokes) ... ok
+test_mcp_effect_contract_allows_only_in_scope_offline_effects (tests.test_security_control_plane.SecurityControlPlaneTests.test_mcp_effect_contract_allows_only_in_scope_offline_effects) ... ok
+test_mcp_effect_contract_denies_external_network (tests.test_security_control_plane.SecurityControlPlaneTests.test_mcp_effect_contract_denies_external_network) ... ok
+test_mcp_requires_explicit_effect_contract (tests.test_security_control_plane.SecurityControlPlaneTests.test_mcp_requires_explicit_effect_contract) ... ok
+test_ordinary_grant_cannot_be_upgraded_to_supervised_agent (tests.test_security_control_plane.SecurityControlPlaneTests.test_ordinary_grant_cannot_be_upgraded_to_supervised_agent) ... ok
+test_quarantine_blocks_and_recovery_requires_admin (tests.test_security_control_plane.SecurityControlPlaneTests.test_quarantine_blocks_and_recovery_requires_admin) ... ok
+test_repeated_denials_force_history_lockdown (tests.test_security_control_plane.SecurityControlPlaneTests.test_repeated_denials_force_history_lockdown) ... ok
+test_sensitive_argv_path_is_denied_and_recorded (tests.test_security_control_plane.SecurityControlPlaneTests.test_sensitive_argv_path_is_denied_and_recorded) ... ok
+test_supervised_agent_grant_cannot_be_consumed_as_ordinary_action (tests.test_security_control_plane.SecurityControlPlaneTests.test_supervised_agent_grant_cannot_be_consumed_as_ordinary_action) ... ok
+test_supervised_agent_grant_records_boundary (tests.test_security_control_plane.SecurityControlPlaneTests.test_supervised_agent_grant_records_boundary) ... ok
+test_tool_gateway_allows_in_scope_file_read (tests.test_security_control_plane.SecurityControlPlaneTests.test_tool_gateway_allows_in_scope_file_read) ... ok
+test_tool_gateway_denies_external_mcp_and_tightens (tests.test_security_control_plane.SecurityControlPlaneTests.test_tool_gateway_denies_external_mcp_and_tightens) ... ok
+test_tool_gateway_requires_approval_for_guarded_write (tests.test_security_control_plane.SecurityControlPlaneTests.test_tool_gateway_requires_approval_for_guarded_write) ... ok
+test_trusted_event_quarantines_without_agent_cooperation (tests.test_security_control_plane.SecurityControlPlaneTests.test_trusted_event_quarantines_without_agent_cooperation) ... ok
+
+----------------------------------------------------------------------
+Ran 22 tests in 1.494s
+
+OK
+exit=0
