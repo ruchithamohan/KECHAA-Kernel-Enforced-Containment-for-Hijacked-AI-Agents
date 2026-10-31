@@ -1,0 +1,244 @@
+{
+  "schema": 1,
+  "generated_utc": "2026-10-31T15:49:32Z",
+  "environment": "Darwin arm64 host; no disposable Linux VM; Docker daemon unavailable",
+  "certification_verdict": "CERTIFICATION BLOCKED \u2014 ENVIRONMENT OR PREREQUISITES MISSING",
+  "preflight_exit": 3,
+  "run_exit": 4,
+  "scenarios": [
+    {
+      "id": "LC-001",
+      "name": "allowed_echo",
+      "issue": 2,
+      "objective": "approved echo exits 0 inside workspace",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    },
+    {
+      "id": "LC-002",
+      "name": "outside_secret_read_denied",
+      "issue": 2,
+      "objective": "outside synthetic secret read fails at OS level",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    },
+    {
+      "id": "LC-003",
+      "name": "outside_write_denied",
+      "issue": 2,
+      "objective": "outside write/chmod/rename fail and target remains unchanged",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    },
+    {
+      "id": "LC-004",
+      "name": "network_denied",
+      "issue": 2,
+      "objective": "TCP UDP IPv4 IPv6 and Unix socket creation fail",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    },
+    {
+      "id": "LC-005",
+      "name": "grant_replay_denied",
+      "issue": 2,
+      "objective": "consumed grant cannot authorize another execution",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    },
+    {
+      "id": "LC-006",
+      "name": "expired_authorization_denied",
+      "issue": 2,
+      "objective": "expired grant or lease blocks execution",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    },
+    {
+      "id": "LC-007",
+      "name": "descendant_cleanup",
+      "issue": 2,
+      "objective": "background and double-fork descendants are killed",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    },
+    {
+      "id": "LC-008",
+      "name": "daemon_restart_recovery",
+      "issue": 2,
+      "objective": "restart kills stale action cgroups and rejects stale grants",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    },
+    {
+      "id": "LC-009",
+      "name": "supervised_bypass_denied",
+      "issue": 1,
+      "objective": "direct unwrapped execution path is unavailable in supported session",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    },
+    {
+      "id": "LC-010",
+      "name": "unsupported_tool_denied",
+      "issue": 3,
+      "objective": "MCP/web/non-shell tool without effect contract fails closed",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    },
+    {
+      "id": "LC-011",
+      "name": "supervised_agent_process_tree",
+      "issue": 1,
+      "objective": "agent launch enters cgroup namespaces Landlock seccomp and descendants inherit restrictions",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    },
+    {
+      "id": "LC-012",
+      "name": "multi_agent_separation",
+      "issue": 7,
+      "objective": "two launched agents receive distinct runs cgroups histories and cannot access each other's workspace",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    },
+    {
+      "id": "LC-013",
+      "name": "attack_defense_demo",
+      "issue": 9,
+      "objective": "external malicious instruction tightens posture and subsequent action requires approval or denial",
+      "status": "BLOCKED",
+      "blockers": [
+        "Current host is macOS/Darwin, not Linux",
+        "No disposable Linux VM/runtime is available",
+        "Docker daemon is unavailable",
+        "tools/certify_linux.py run is currently fail-closed and does not execute LC scenarios"
+      ],
+      "evidence": {
+        "plan": "audit/certification-evidence/20261031-lc001-lc013-blocked/lc-plan.json",
+        "preflight": "audit/certification-evidence/20261031-lc001-lc013-blocked/preflight.json",
+        "run": "audit/certification-evidence/20261031-lc001-lc013-blocked/run.json"
+      }
+    }
+  ]
+}

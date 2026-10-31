@@ -1,0 +1,26 @@
+{
+  "arch": "arm64",
+  "certified": false,
+  "failures": [
+    "Linux is required for kernel containment certification."
+  ],
+  "os": "Darwin",
+  "ready": false,
+  "reason": "Automated privileged LC execution is intentionally not run unless this host passes preflight and an operator supplies a disposable VM test workspace.",
+  "required_scenarios": [
+    "LC-001",
+    "LC-002",
+    "LC-003",
+    "LC-004",
+    "LC-005",
+    "LC-006",
+    "LC-007",
+    "LC-008",
+    "LC-009",
+    "LC-010",
+    "LC-011",
+    "LC-012",
+    "LC-013"
+  ],
+  "uid": 501
+}

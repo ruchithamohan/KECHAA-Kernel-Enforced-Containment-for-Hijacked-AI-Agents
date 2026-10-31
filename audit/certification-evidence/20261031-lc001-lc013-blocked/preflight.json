@@ -1,0 +1,9 @@
+{
+  "arch": "arm64",
+  "failures": [
+    "Linux is required for kernel containment certification."
+  ],
+  "os": "Darwin",
+  "ready": false,
+  "uid": 501
+}
