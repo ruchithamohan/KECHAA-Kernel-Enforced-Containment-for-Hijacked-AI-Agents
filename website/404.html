@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KECHAA — Page Not Found</title>
+  <meta name="description" content="KECHAA is a security architecture for governing autonomous AI agent execution with signed authorization grants, task boundaries, trusted history and Linux containment design." />
+  <meta name="theme-color" content="#07111f" />
+  <meta property="og:title" content="KECHAA — Your AI agents. Your rules. Your security boundary." />
+  <meta property="og:description" content="Govern autonomous AI agent execution with trusted authorization, execution history, task boundaries and operating-system containment design." />
+  <meta property="og:type" content="website" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header" data-elevated="false">
+    <nav class="nav" aria-label="Primary navigation">
+      <a class="brand" href="#top" aria-label="KECHAA home">
+        <span class="brand-mark" aria-hidden="true">K</span>
+        <span>KECHAA</span>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">Menu</button>
+      <div class="nav-links" id="nav-links">
+        <a href="#problem">Problem</a>
+        <a href="#approach">Approach</a>
+        <a href="#offerings">Capabilities</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#demo">Demo</a>
+        <a href="#developers">Developers</a>
+        <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero section" id="top">
+      <div class="hero-grid container">
+        <div class="hero-copy reveal">
+          <div class="eyebrow">Experimental AI agent security architecture</div>
+          <h1>KECHAA page not found.</h1>
+          <p class="hero-lede">KECHAA is designed to govern autonomous AI agent execution through trusted authorization, execution history, task boundaries and operating-system containment architecture.</p>
+          <div class="hero-actions" aria-label="Primary actions">
+            <a class="button button-primary" href="#approach">Explore KECHAA</a>
+            <a class="button button-ghost" href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents">View GitHub</a>
+          </div>
+          <dl class="hero-stats" aria-label="Project evidence snapshot">
+            <div><dt>22</dt><dd>unit and adversarial tests currently passing</dd></div>
+            <div><dt>6</dt><dd>core control-plane capabilities implemented</dd></div>
+            <div><dt>LC</dt><dd>Linux certification scenarios prepared, pending VM execution</dd></div>
+          </dl>
+        </div>
+        <div class="hero-visual reveal" aria-label="KECHAA authorization boundary visual">
+          <div class="orbital-card">
+            <div class="agent-node">AI Agent</div>
+            <div class="boundary-ring" aria-hidden="true"></div>
+            <div class="policy-core">
+              <span>Policy</span>
+              <strong>Signed Grant</strong>
+              <small>History-aware decision</small>
+            </div>
+            <div class="resource-node resource-a">Files</div>
+            <div class="resource-node resource-b">Tools</div>
+            <div class="resource-node resource-c">Network</div>
+            <div class="status-chip">Fail-closed by design</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section problem" id="problem">
+      <div class="container two-column">
+        <div class="section-kicker">The problem</div>
+        <div>
+          <h2>Autonomous agents need more than instructions.</h2>
+          <p>Long-running AI agents can be manipulated by prompt injection, hostile tool output, untrusted files, compromised integrations or gradual task drift. Once an agent is influenced, normal permissions may be used in abnormal ways.</p>
+          <div class="risk-grid">
+            <article><span>01</span><h3>Prompt injection</h3><p>External content can redirect an agent toward actions outside the original task.</p></article>
+            <article><span>02</span><h3>Tool misuse</h3><p>Legitimate tools can become the path for unauthorized filesystem, network or process effects.</p></article>
+            <article><span>03</span><h3>Long-running drift</h3><p>Risk can emerge from sequences of individually plausible actions over time.</p></article>
+            <article><span>04</span><h3>Weak evidence</h3><p>Logs that depend on the agent are not enough when the agent itself may be compromised.</p></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section approach" id="approach">
+      <div class="container two-column">
+        <div class="section-kicker">The KECHAA approach</div>
+        <div>
+          <h2>An independent authorization layer between agents and effects.</h2>
+          <p>KECHAA separates an agent's reasoning from the authority to execute. Actions are evaluated against task contracts, policy, session identity and trusted execution history before a signed grant is issued. The Linux execution architecture is designed to connect those decisions to operating-system containment boundaries.</p>
+          <div class="principles">
+            <div><strong>Authorize explicitly</strong><span>Single-use grants bind exact context and effect envelopes.</span></div>
+            <div><strong>Remember history</strong><span>Previous denials and tool events can influence later decisions.</span></div>
+            <div><strong>Fail closed</strong><span>Unsupported effects are denied instead of silently allowed.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section offerings" id="offerings">
+      <div class="container">
+        <div class="section-heading">
+          <span class="section-kicker">Product capabilities</span>
+          <h2>Six building blocks for safer agent execution.</h2>
+          <p>KECHAA's product model is intentionally focused: govern what agents can execute, retain trusted state, and make suspicious sequences actionable.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card"><span class="icon">✦</span><h3>Trusted Authorization</h3><p><strong>Problem:</strong> broad permissions are hard to revoke once an agent is running.</p><p><strong>KECHAA:</strong> signed, single-use grants bind execution to the reviewed action, policy version, session and effect envelope.</p><p class="benefit">Benefit: developers can approve bounded operations without handing over open-ended authority.</p></article>
+          <article class="feature-card"><span class="icon">▣</span><h3>Task-Bound Execution</h3><p><strong>Problem:</strong> agents often operate beyond the task they were originally given.</p><p><strong>KECHAA:</strong> task contracts define permitted roots, executables, write scope and session lifetime.</p><p class="benefit">Benefit: agent work is framed by a durable security contract instead of a prompt alone.</p></article>
+          <article class="feature-card accent"><span class="icon">⟲</span><h3>History-Aware Authorization</h3><p><strong>Problem:</strong> dangerous behavior may appear as a sequence of small, plausible actions.</p><p><strong>KECHAA:</strong> later decisions can consider trusted execution history, previous denials, posture and session state.</p><p class="benefit">Benefit: policy can respond to patterns, not just isolated requests.</p></article>
+          <article class="feature-card"><span class="icon">⬡</span><h3>Agent Containment</h3><p><strong>Problem:</strong> a compromised agent should not be able to opt out of security boundaries.</p><p><strong>KECHAA:</strong> supervised launch and Linux containment design connect authorization to OS-level restrictions for supported offline paths.</p><p class="benefit">Benefit: enforcement is designed to live outside the agent's reasoning loop. Linux certification is still pending.</p></article>
+          <article class="feature-card"><span class="icon">!</span><h3>Quarantine and Recovery</h3><p><strong>Problem:</strong> suspicious activity needs a response workflow, not just an alert.</p><p><strong>KECHAA:</strong> posture changes, quarantine and recovery paths help operators stop, review and re-authorize sessions.</p><p class="benefit">Benefit: response becomes part of the execution lifecycle.</p></article>
+          <article class="feature-card"><span class="icon">⌁</span><h3>Agent Ecosystem Security</h3><p><strong>Problem:</strong> tool and MCP ecosystems can create external effects outside a shell command.</p><p><strong>KECHAA:</strong> MCP-style tool requests require explicit offline effect contracts; unsupported external effects fail closed.</p><p class="benefit">Benefit: integrations can declare effects instead of bypassing authorization.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section lifecycle" id="how-it-works">
+      <div class="container">
+        <div class="section-heading compact">
+          <span class="section-kicker">How it works</span>
+          <h2>From task definition to containment response.</h2>
+        </div>
+        <ol class="timeline">
+          <li><span>1</span><div><h3>Define the task</h3><p>An operator confirms the run contract: roots, executables, write permission and lifetime.</p></div></li>
+          <li><span>2</span><div><h3>Request authorization</h3><p>The agent or adapter submits an action or declared tool effect.</p></div></li>
+          <li><span>3</span><div><h3>Evaluate policy and history</h3><p>KECHAA checks the current action, session, task authorization and trusted execution history.</p></div></li>
+          <li><span>4</span><div><h3>Issue or deny a grant</h3><p>Allowed work receives a signed single-use grant; suspicious work can require approval or be denied.</p></div></li>
+          <li><span>5</span><div><h3>Govern execution</h3><p>The Linux architecture is designed to launch supported work through a supervised containment boundary.</p></div></li>
+          <li><span>6</span><div><h3>Record and respond</h3><p>History and audit records support posture changes, quarantine and recovery.</p></div></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section architecture" id="architecture">
+      <div class="container">
+        <div class="section-heading">
+          <span class="section-kicker">Architecture</span>
+          <h2>A trusted control plane for agent execution.</h2>
+          <p>The diagram reflects the current implementation and certification boundary: control-plane capabilities are tested; Linux OS enforcement remains pending LC-001 through LC-013 execution in a disposable VM.</p>
+        </div>
+        <div class="architecture-panel" role="img" aria-label="Architecture diagram showing AI agent, task contract, policy engine, history store, signed grants, supervised launcher, OS boundary, audit and recovery.">
+          <svg viewBox="0 0 1100 520" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="node" x1="0" x2="1"><stop stop-color="#10233d"/><stop offset="1" stop-color="#142a4b"/></linearGradient>
+              <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#4ee3ff"/></marker>
+              <linearGradient id="accent" x1="0" x2="1"><stop stop-color="#4ee3ff"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
+              <filter id="glow"><feGaussianBlur stdDeviation="5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+            </defs>
+            <rect x="18" y="26" width="1064" height="468" rx="28" fill="#07111f" stroke="#223654"/>
+            <rect x="690" y="70" width="330" height="360" rx="24" fill="#0b1728" stroke="#31506f" stroke-dasharray="8 8"/>
+            <text x="855" y="105" text-anchor="middle" fill="#93c5fd" font-size="18" font-weight="700">OS enforcement boundary</text>
+            <g class="diagram-node"><rect x="70" y="120" width="165" height="92" rx="18" fill="url(#node)" stroke="#335477"/><text x="152" y="158" text-anchor="middle" fill="#f8fafc" font-size="18" font-weight="700">AI Agent</text><text x="152" y="184" text-anchor="middle" fill="#9fb4cf" font-size="13">tool-using workflow</text></g>
+            <g><rect x="300" y="75" width="180" height="80" rx="18" fill="url(#node)" stroke="#335477"/><text x="390" y="110" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">Task Contract</text><text x="390" y="133" text-anchor="middle" fill="#9fb4cf" font-size="12">scope • lifetime • roots</text></g>
+            <g><rect x="300" y="220" width="180" height="92" rx="18" fill="url(#node)" stroke="#335477"/><text x="390" y="255" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">Policy Engine</text><text x="390" y="278" text-anchor="middle" fill="#9fb4cf" font-size="12">allow • ask • deny</text></g>
+            <g><rect x="300" y="370" width="180" height="80" rx="18" fill="url(#node)" stroke="#335477"/><text x="390" y="405" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">History Store</text><text x="390" y="428" text-anchor="middle" fill="#9fb4cf" font-size="12">previous actions</text></g>
+            <g filter="url(#glow)"><rect x="535" y="220" width="145" height="92" rx="18" fill="#102a45" stroke="#4ee3ff"/><text x="607" y="255" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">Signed Grant</text><text x="607" y="279" text-anchor="middle" fill="#9deaff" font-size="12">single-use</text></g>
+            <g><rect x="735" y="145" width="220" height="88" rx="18" fill="url(#node)" stroke="#335477"/><text x="845" y="180" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">Supervised Launcher</text><text x="845" y="204" text-anchor="middle" fill="#9fb4cf" font-size="12">supported agent path</text></g>
+            <g><rect x="735" y="282" width="220" height="100" rx="18" fill="url(#node)" stroke="#335477"/><text x="845" y="318" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">Linux Boundary</text><text x="845" y="343" text-anchor="middle" fill="#9fb4cf" font-size="12">cgroups • namespaces</text><text x="845" y="363" text-anchor="middle" fill="#9fb4cf" font-size="12">Landlock • seccomp</text></g>
+            <g><rect x="530" y="75" width="150" height="80" rx="18" fill="url(#node)" stroke="#335477"/><text x="605" y="109" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">Tool Gateway</text><text x="605" y="132" text-anchor="middle" fill="#9fb4cf" font-size="12">MCP contracts</text></g>
+            <g><rect x="530" y="370" width="150" height="80" rx="18" fill="url(#node)" stroke="#335477"/><text x="605" y="405" text-anchor="middle" fill="#f8fafc" font-size="17" font-weight="700">Audit</text><text x="605" y="428" text-anchor="middle" fill="#9fb4cf" font-size="12">records • anchors</text></g>
+            <path d="M235 166 H300" stroke="url(#accent)" stroke-width="3" marker-end="url(#arrow)"/><path d="M480 265 H535" stroke="url(#accent)" stroke-width="3"/><path d="M680 265 C710 245 720 210 735 190" stroke="url(#accent)" stroke-width="3"/><path d="M845 233 V282" stroke="url(#accent)" stroke-width="3"/><path d="M390 155 V220" stroke="#3b82f6" stroke-width="2"/><path d="M390 312 V370" stroke="#3b82f6" stroke-width="2"/><path d="M480 410 H530" stroke="#8b5cf6" stroke-width="2"/><path d="M605 155 V220" stroke="#8b5cf6" stroke-width="2"/>
+            <text x="845" y="412" text-anchor="middle" fill="#fbbf24" font-size="12">Linux certification pending</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="section demo" id="demo">
+      <div class="container two-column align-start">
+        <div>
+          <span class="section-kicker">Interactive demonstration</span>
+          <h2>See how history changes authorization.</h2>
+          <p>This browser demo models the current control-plane behavior: a permitted action receives a grant; an external tool request is denied; the next action is no longer silently allowed. It is not a Linux kernel certification.</p>
+          <div class="demo-actions">
+            <button class="button button-primary" type="button" data-demo-step="0">1. Permit task action</button>
+            <button class="button button-warn" type="button" data-demo-step="1">2. Attempt external tool</button>
+            <button class="button button-ghost" type="button" data-demo-step="2">3. Request follow-up</button>
+          </div>
+        </div>
+        <div class="terminal" aria-live="polite">
+          <div class="terminal-bar"><span></span><span></span><span></span><strong>kechaa-demo</strong></div>
+          <pre id="demo-output">$ ready
+Scenario: supervised agent requests a bounded action.
+Select a step to inspect the authorization flow.</pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="section use-cases" id="use-cases">
+      <div class="container">
+        <div class="section-heading">
+          <span class="section-kicker">Use cases</span>
+          <h2>Designed for the next generation of agent workflows.</h2>
+        </div>
+        <div class="use-grid">
+          <article><h3>Autonomous coding agents</h3><p>Constrain command execution and project access around a task contract.</p></article>
+          <article><h3>AI-powered development workflows</h3><p>Separate developer approval from the agent's changing internal instructions.</p></article>
+          <article><h3>Tool-using agents</h3><p>Make non-shell effects explicit through declared tool contracts.</p></article>
+          <article><h3>Long-running sessions</h3><p>Use leases, history and posture changes to manage risk over time.</p></article>
+          <article><h3>Multi-agent environments</h3><p>Target per-agent identity, history and resource boundaries. OS certification is pending.</p></article>
+          <article><h3>MCP ecosystems</h3><p>Authorize declared MCP effects while unsupported paths fail closed.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section developers" id="developers">
+      <div class="container two-column align-start">
+        <div>
+          <span class="section-kicker">Developer experience</span>
+          <h2>Explore locally, certify carefully.</h2>
+          <p>KECHAA keeps the Python package and website separate. The current safe path is to explore policy, grants, audit and demos locally, then run OS-enforcement certification inside a disposable Linux VM.</p>
+          <div class="code-card">
+<pre><code>python tools/install.py install --prefix ./installation --python /absolute/path/to/python
+./installation/bin/kechaa version
+python -m unittest discover -v
+python tools/demo_attack_defense.py
+python tools/certify_linux.py run</code></pre>
+          </div>
+        </div>
+        <div class="docs-list">
+          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents#readme"><span>README</span><small>overview and quick start</small></a>
+          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/security.md"><span>Security model</span><small>trust boundaries and limitations</small></a>
+          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/integrations.md"><span>Integrations</span><small>CLI, Local API, Claude adapter, MCP status</small></a>
+          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/operations.md"><span>Operations</span><small>install, backup, recovery, troubleshooting</small></a>
+          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/audit/KECHAA_LINUX_CERTIFICATION_READINESS.md"><span>Certification readiness</span><small>LC-001 through LC-013 requirements</small></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section ecosystem" id="ecosystem">
+      <div class="container">
+        <div class="section-heading">
+          <span class="section-kicker">Ecosystem and integrations</span>
+          <h2>Be precise about what is verified.</h2>
+        </div>
+        <div class="status-table" role="table" aria-label="Integration status">
+          <div role="row" class="status-head"><span>Integration</span><span>Status</span><span>Claim boundary</span></div>
+          <div role="row"><span>Generic CLI / Local API</span><strong class="ok">Implemented</strong><span>Control-plane flows are tested.</span></div>
+          <div role="row"><span>Supervised Linux launch</span><strong class="warn">Designed / pending certification</strong><span>LC-001 through LC-013 must pass before OS-enforcement claims.</span></div>
+          <div role="row"><span>MCP</span><strong class="ok">Effect-contract authorization</strong><span>No full protocol proxy; uncontracted/external effects fail closed.</span></div>
+          <div role="row"><span>Claude Code</span><strong class="warn">Adapter unverified in real harness</strong><span>Docs describe current boundary.</span></div>
+          <div role="row"><span>Codex CLI</span><strong class="warn">Generic wrapper path only</strong><span>No native adapter claim.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section status" id="security-status">
+      <div class="container status-card">
+        <div>
+          <span class="section-kicker">Security status</span>
+          <h2>Premium security products earn trust through evidence.</h2>
+          <p>KECHAA is an experimental alpha with tested control-plane capabilities and a fail-closed certification harness. Linux whole-agent containment remains pending until LC-001 through LC-013 run in a disposable Linux VM.</p>
+        </div>
+        <ul>
+          <li><strong>Implemented:</strong> grants, contracts, history, leases, quarantine, audit, MCP effect authorization.</li>
+          <li><strong>Tested:</strong> 22 unit and adversarial tests currently pass.</li>
+          <li><strong>Pending:</strong> Linux OS-enforcement certification and full MCP protocol mediation.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section get-started" id="get-started">
+      <div class="container cta-panel">
+        <span class="section-kicker">Get started</span>
+        <h2>Explore KECHAA and help harden agent security.</h2>
+        <p>Review the repository, run the local tests, inspect the architecture and contribute to Linux certification, MCP mediation and agent integration hardening.</p>
+        <div class="hero-actions centered">
+          <a class="button button-primary" href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents">Open GitHub</a>
+          <a class="button button-ghost" href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/security.md">Read Security Model</a>
+          <a class="button button-ghost" href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/audit/KECHAA_LINUX_CERTIFICATION_READINESS.md">Certification Plan</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section faq" id="faq">
+      <div class="container">
+        <div class="section-heading compact"><span class="section-kicker">FAQ</span><h2>Clear answers for evaluators.</h2></div>
+        <details><summary>Is KECHAA production-ready?</summary><p>No. KECHAA is an experimental alpha and should be treated as a security prototype until Linux certification and broader reliability work are complete.</p></details>
+        <details><summary>Does KECHAA prevent prompt injection?</summary><p>No product can guarantee that an agent will not be influenced by malicious content. KECHAA focuses on constraining what the agent can execute when its reasoning is no longer trustworthy.</p></details>
+        <details><summary>Is Linux containment certified?</summary><p>Not yet. LC-001 through LC-013 are prepared but still require execution in a disposable Linux VM.</p></details>
+        <details><summary>Does KECHAA fully mediate MCP?</summary><p>No. KECHAA currently supports effect-contract authorization for MCP-style tool requests. Full MCP protocol proxying is not implemented.</p></details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div><a class="brand" href="#top"><span class="brand-mark">K</span><span>KECHAA</span></a><p>Kernel-Enforced Containment for Hijacked AI Agents.</p></div>
+      <div><h3>Project</h3><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents">GitHub</a><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/LICENSE">MIT License</a><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/SECURITY.md">Security Policy</a></div>
+      <div><h3>Documentation</h3><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/operations.md">Operations</a><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/policy.md">Policy</a><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/integrations.md">Integrations</a></div>
+      <div><h3>Status</h3><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/audit/KECHAA_PRODUCT_RELEASE_READINESS_REPORT.md">Release Readiness</a><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/audit/KECHAA_LINUX_CONTAINMENT_CERTIFICATION.md">Certification Evidence</a></div>
+    </div>
+  </footer>
+
+  <script src="./script.js" defer></script>
+</body>
+</html>
