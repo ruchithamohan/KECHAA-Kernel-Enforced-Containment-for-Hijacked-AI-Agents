@@ -188,9 +188,9 @@ Potential overhead:
 
 ## L. GitHub Pull Request References
 
-Prepared locally on branch `kechaa/mission-critical-remediation`.
+Branch pushed: `kechaa/mission-critical-remediation`.
 
-Pull request creation status at report time: pending commit/push/PR creation.
+Pull request: https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/pull/11
 
 ## M. Original Versus Updated Production-Readiness Scorecard
 
