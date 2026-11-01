@@ -182,9 +182,8 @@
           <div class="code-card">
 <pre><code>git clone https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents
 cd KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents
-python -m unittest discover -v
-python tools/demo_attack_defense.py
-python -m kechaa policy validate examples/linux-offline.yaml</code></pre>
+python -m unittest -v tests.test_security_control_plane tests.test_adversarial_control_plane
+python tools/demo_attack_defense.py</code></pre>
           </div>
         </div>
         <div class="docs-list">
