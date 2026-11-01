@@ -1,0 +1,41 @@
+{
+  "S1": {
+    "denial_attempts_allowed": [
+      false,
+      false,
+      false
+    ],
+    "before_flood": false,
+    "after_flood": true,
+    "after_restart": true
+  },
+  "S2": {
+    "response": {
+      "ok": false,
+      "error": {
+        "code": "internal_failure",
+        "message": "An internal failure holds all execution; preserve state for investigation.",
+        "category": "operational_error"
+      }
+    },
+    "ready": false,
+    "subsequent": {
+      "ok": false,
+      "error": {
+        "code": "daemon_unhealthy",
+        "message": "Audit or cleanup failure holds all actions. An administrator must reconcile state.",
+        "category": "operational_error"
+      }
+    }
+  },
+  "S3": {
+    "parent_retained": true,
+    "sibling_read_covered": true
+  },
+  "S4": {
+    "kernel": true,
+    "supervisor": true,
+    "tool_gateway": true,
+    "admin": false
+  }
+}

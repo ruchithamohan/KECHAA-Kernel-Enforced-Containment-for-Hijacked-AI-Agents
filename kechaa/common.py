@@ -97,9 +97,13 @@ def integer(value: Any, low: int, high: int, where: str) -> int:
 def path_string(value: Any) -> str:
     require(isinstance(value, str) and value.startswith("/") and len(value) <= 4096,
             "schema_path", "Paths must be absolute and at most 4096 characters.", "policy_misconfiguration")
-    require(not any(c in value for c in "\x00\n\r*?[]") and all(x not in (".", "..") for x in value.split("/")),
+    require(not any(ord(c) < 32 or ord(c) == 127 or 0xD800 <= ord(c) <= 0xDFFF or c in '*?[]' for c in value)
+            and all(x not in (".", "..") for x in value.split("/")),
             "schema_path", "Paths cannot contain traversal, control characters or globs.", "policy_misconfiguration")
-    return os.path.normpath(value)
+    require(len(value.encode('utf-8')) <= 4096, 'schema_path', 'Paths cannot exceed 4096 UTF-8 bytes.', 'policy_misconfiguration')
+    # POSIX normpath preserves exactly two leading slashes. Treat them as the
+    # same local root so lexical policy checks and descriptor walks agree.
+    return os.path.normpath('/' + value.lstrip('/'))
 
 
 def within(path: str, root: str) -> bool:

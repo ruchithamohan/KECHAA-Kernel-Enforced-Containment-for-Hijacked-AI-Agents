@@ -115,6 +115,8 @@ def validate(value: dict, source: str = "<policy>", locations: dict | None = Non
         roots = paths(value["roots"])
         require(roots and all(x not in ("/", "/home", "/Users", "/tmp", "/private/tmp", "/var", "/private/var") for x in roots),
                 "policy_roots", "Choose dedicated project directories, not global or home-parent roots.")
+        require(not any(overlap(a, b) for i, a in enumerate(roots) for b in roots[i + 1:]),
+                "policy_roots", "Project roots must be disjoint; declare a parent once and narrow it with contracts.")
         sensitive = sorted(set(paths(value["sensitive"]) + DEFAULT_SENSITIVE))
         require(not any(overlap(r, s) for r in roots for s in sensitive), "policy_sensitive", "A project root overlaps a sensitive path; Landlock cannot subtract a child deny.")
         profiles = value["profiles"]
@@ -134,6 +136,7 @@ def validate(value: dict, source: str = "<policy>", locations: dict | None = Non
             fields(item, {"read", "write", "execute", "network", "environment", "limits"}, {"extends"}, "profile")
             require(item["network"] == "offline", "network_unsupported", "This version supports only offline envelopes; TCP, UDP, DNS and local sockets are denied.", "compatibility_block")
             output = {key: paths(item[key]) for key in ("read", "write", "execute")}
+            narrow_project_paths(output['read'], roots, roots)
             require(output["execute"], "policy_execute", "A profile must name at least one executable.")
             require(all(any(within(w, r) for r in roots) for w in output["write"]), "policy_write", "Writes must remain within declared project roots.")
             require(not any(overlap(p, s) for p in output["read"] + output["write"] + output["execute"] for s in sensitive),
@@ -196,6 +199,26 @@ def validate(value: dict, source: str = "<policy>", locations: dict | None = Non
         while current not in locations and current:
             current = current[:-1]
         raise KechaaError(exc.code, f"{source}:{locations.get(current, 1)} ({field_path}): {exc.message}", "policy_misconfiguration") from exc
+
+
+def narrow_project_paths(paths: list[str], roots: list[str], contract: list[str]) -> list[str]:
+    """Project descendants are intersected; runtime paths must be disjoint.
+
+    A strict ancestor of a project is ambiguous: it cannot simultaneously grant
+    runtime reads and claim to exclude another project below that ancestor.
+    Keep disjoint system dependencies, but reject these mixed-purpose paths.
+    """
+    result = set()
+    for path in paths:
+        project = any(within(path, root) for root in roots)
+        require(project or not any(overlap(path, root) for root in roots),
+                'policy_read_overlap', 'A runtime read cannot be an ancestor of a project root; name disjoint runtime dependencies and explicit project reads.',
+                'policy_misconfiguration')
+        if project:
+            result.update(intersect_paths([path], contract))
+        else:
+            result.add(path)
+    return sorted(result)
 
 
 def evaluate(policy: Policy, argv: list[str], cwd: str, mode: str = "normal") -> dict:

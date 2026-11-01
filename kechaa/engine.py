@@ -10,12 +10,20 @@ import time
 from . import effects
 from .common import (KechaaError, canonical, decode, digest, fields, identifier,
                      integer, overlap, path_string, require, within)
-from .policy import Policy, evaluate, load, validate
+from .policy import Policy, evaluate, load, narrow_project_paths, validate
 from .store import Store
 
 MODES = {"normal": 0, "guarded": 1, "lockdown": 2, "quarantined": 3}
 LABELS = {"untrusted_web", "untrusted_repository", "untrusted_mcp", "credential_exposure"}
 TRUSTED_LABELS = LABELS | {"tool_denied", "bypass_attempt", "policy_violation", "agent_compromise"}
+INTERNAL_SOURCES = {"kernel", "supervisor", "tool_gateway"}
+
+
+class RunDenied(KechaaError):
+    """Committed denial; transport must finish required active-worker cleanup."""
+    def __init__(self, message: str, run: str, terminate: bool):
+        super().__init__('policy_denied', message)
+        self.terminate_run = run if terminate else None
 
 
 class Engine:
@@ -53,9 +61,23 @@ class Engine:
             store.event("daemon_started", {"epoch": self.epoch, "revoked_grants": count, "policy": self.policy.version,
                         "profile": self.profile, "observation": "No kernel effect stream is available."}, owner)
         now_ms = time.time_ns() // 1000000
-        for row in store.db.execute("SELECT id,body FROM runs WHERE closed=0").fetchall():
+        for row in store.db.execute("SELECT * FROM runs WHERE closed=0").fetchall():
             run_body = decode(row["body"])
             require(isinstance(run_body, dict), "state_corrupt", "Persisted run body is malformed.")
+            require('denial_state_version' not in run_body or type(run_body['denial_state_version']) is int
+                    and run_body['denial_state_version'] == 1,
+                    'state_schema', 'Unsupported denial-state version; use a reviewed migration.')
+            if 'denial_state_version' not in run_body:
+                # Old bounded history may already have lost denial records. Never
+                # infer a clean run from that absence; require one explicit review.
+                mode = max((row['mode'], 'lockdown'), key=MODES.get)
+                run_body.update(denial_state_version=1, denials=3, posture=mode)
+                with store.transaction():
+                    store.db.execute('UPDATE runs SET body=?,mode=?,revision=revision+1 WHERE id=?',
+                                     (canonical(run_body), mode, row['id']))
+                    store.event('denial_state_upgrade', {'run': row['id'], 'mode': mode,
+                                'reason': 'Legacy history cannot prove the absence of diluted denials; administrative recovery required.'}, owner)
+            integer(run_body.get('denials'), 0, 3, 'persisted denial count')
             if "expires_ms" not in run_body:
                 with store.transaction():
                     store.db.execute("UPDATE runs SET closed=1,revision=revision+1 WHERE id=?", (row['id'],))
@@ -144,7 +166,8 @@ class Engine:
                              "lifetime_seconds": lifetime, "input_integrity": integrity}, "labels": [],
                 "opened_ms": opened, "expires_ms": expires, "lease": {"issued_ms": opened, "expires_ms": expires, "renewals": 0},
                 "state": "active", "posture": "normal", "trusted_signals": [],
-                "signals": [], "actions": 0, "denials": 0, "policy_at_confirmation": self.policy.version, "observed_effects_complete": False}
+                "signals": [], "actions": 0, "denials": 0, "denial_state_version": 1,
+                "policy_at_confirmation": self.policy.version, "observed_effects_complete": False}
         with self.store.transaction():
             self.store.db.execute("INSERT INTO runs VALUES(?,?,?,?,?,?,?,?)", (run_id, target, data["session"], canonical(body), 1, "normal", 0, 0))
             self.store.event("contract_confirmed", {"run": run_id, "uid": target, "session_digest": digest(data["session"]), "contract": body["contract"]}, uid)
@@ -192,31 +215,58 @@ class Engine:
 
     def trusted_event(self, data: dict, uid: int, administrative: bool = False) -> dict:
         fields(data, {"run", "label", "source"}, {"session", "reason"})
-        require(administrative or "session" in data, "session_required", "Non-administrative posture events must be bound to a session.", "invalid_request")
-        row = self.admin_run(data["run"]) if administrative and "session" not in data else self.run(data["run"], data["session"], uid)
-        require(isinstance(data["label"], str) and data["label"] in TRUSTED_LABELS, "label_unknown", "Unknown trusted posture label.", "invalid_request")
-        require(isinstance(data["source"], str) and data["source"] in ("supervisor", "tool_gateway", "kernel", "admin", "client_report"),
-                "event_source", "Trusted event source is not recognized.", "invalid_request")
-        if data["source"] == "admin":
+        # Neither socket can manufacture an internal observation. The endpoint
+        # and authenticated UID, never a request field, determine producer role.
+        source = 'admin' if administrative else 'client_report'
+        require(data['source'] == source, 'event_provenance',
+                'Event source must match the authenticated endpoint; internal sources are not accepted over the API.', 'invalid_request')
+        if administrative:
             self.admin(uid, administrative)
+            row = self.admin_run(data['run'])
+        else:
+            require('session' in data, 'session_required', 'Client reports require a session.', 'invalid_request')
+            row = self.run(data['run'], data['session'], uid)
+        return self._apply_event(row, data['label'], source, uid, data.get('reason'),
+                                 {'kind': source, 'uid': uid})
+
+    def internal_event(self, run: str, label: str, *, source: str, reason: str | None = None) -> dict:
+        """Trusted in-process producer API. Not exposed by Server.dispatch.
+
+        Code executing in the daemon is in the TCB. Calling this API is not
+        evidence that a kernel collector or external gateway exists.
+        """
+        require(isinstance(source, str) and source in INTERNAL_SOURCES,
+                'event_source', 'Unknown internal event source.', 'invalid_request')
+        return self._apply_event(self.admin_run(run), label, source, self.owner, reason,
+                                 {'kind': 'internal', 'component': source, 'uid': self.owner})
+
+    def _apply_event(self, row: dict, label: str, source: str, uid: int,
+                     reason: str | None, producer: dict) -> dict:
+        require(not row['closed'], 'run_closed', 'The run has ended.')
+        require(isinstance(label, str) and label in TRUSTED_LABELS, 'label_unknown', 'Unknown posture label.', 'invalid_request')
+        require(reason is None or isinstance(reason, str) and len(reason.encode('utf-8')) <= 1000,
+                'event_reason', 'Event reason must be at most 1000 UTF-8 bytes.', 'invalid_request')
         body = decode(row["body"])
-        mode, points, reason = self._risk_transition(row, body, data["label"], data["source"])
-        body["labels"] = sorted(set(body.get("labels", [])) | {data["label"]})
+        mode, points, default_reason = self._risk_transition(row, body, label, source)
+        body["labels"] = sorted(set(body.get("labels", [])) | {label})
         body["posture"] = mode
         if mode == "quarantined":
             body["state"] = "quarantined"
-        signal = {"signal": data["label"], "source": data["source"], "points": points, "reason": data.get("reason", reason)}
-        body["trusted_signals"] = (body.get("trusted_signals", []) + [signal])[-64:]
+        signal = {"signal": label, "source": source, "producer": producer, "points": points, "reason": reason or default_reason}
+        bucket = 'signals' if source == 'client_report' else 'trusted_signals'
+        body[bucket] = (body.get(bucket, []) + [signal])[-64:]
         with self.store.transaction():
             self.store.db.execute("UPDATE runs SET body=?,mode=?,revision=revision+1,score=MIN(100,score+?) WHERE id=?",
                                   (canonical(body), mode, points, row["id"]))
             self.store.db.execute("UPDATE grants SET state='revoked_posture' WHERE run=? AND state IN ('issued','pending')", (row["id"],))
-            self.store.history(row["id"], "posture_changed", {"label": data["label"], "source": data["source"], "mode": mode, "reason": signal["reason"]}, min(100, row["score"] + points))
-            self.store.event("posture_changed", {"run": row["id"], "label": data["label"], "source": data["source"], "mode": mode,
+            self.store.history(row["id"], "posture_changed", {"label": label, "source": source, "producer": producer, "mode": mode, "reason": signal["reason"]}, min(100, row["score"] + points))
+            self.store.event("posture_changed", {"run": row["id"], "label": label, "source": source, "producer": producer, "mode": mode,
                              "response": "Active action must terminate; future actions require a new envelope."}, uid)
         return {"run": row["id"], "mode": mode, "state": body.get("state", "active"), "changed": True, "terminate_active": True}
 
     def tool_request(self, data: dict, uid: int) -> dict:
+        # Bound both history storage and validation work before reading fields.
+        require(len(canonical(data)) <= 16384, 'tool_size', 'Tool declaration exceeds 16 KiB.', 'invalid_request')
         fields(data, {"run", "session", "tool", "effects"})
         row = self.run(data["run"], data["session"], uid)
         require(isinstance(data["tool"], str) and 1 <= len(data["tool"]) <= 128, "tool_name", "Invalid tool name.", "invalid_request")
@@ -225,18 +275,30 @@ class Engine:
         body = decode(row["body"])
         contract = body["contract"]
         decision, reason, risk = "allow", "Tool effects are within the confirmed run contract.", row["score"]
-        reads = [path_string(path) for path in effects.get("read", [])]
-        writes = [path_string(path) for path in effects.get("write", [])]
+        def paths(key):
+            items = effects.get(key, [])
+            require(isinstance(items, list) and len(items) <= 64, 'tool_effects',
+                    'Tool read/write effects must be arrays of at most 64 paths.', 'invalid_request')
+            try:
+                return [path_string(path) for path in items]
+            except KechaaError as exc:
+                raise KechaaError('tool_path', 'Tool paths must be absolute, bounded and free of traversal or control characters.', 'invalid_request') from exc
+        reads, writes = paths('read'), paths('write')
         network = effects.get("network", "offline")
         kind = effects.get("kind")
-        require(isinstance(effects.get("read", []), list) and isinstance(effects.get("write", []), list),
-                "tool_effects", "Tool read/write effects must be path lists.", "invalid_request")
-        require(network in ("offline", "external"), "tool_network", "Tool network effect must be offline or external.", "invalid_request")
-        require(kind is None or kind in ("mcp_effect_contract", "file_effect_contract"),
+        require(isinstance(network, str) and network in ("offline", "external"), "tool_network", "Tool network effect must be offline or external.", "invalid_request")
+        require('kind' not in effects or isinstance(kind, str) and kind in ("mcp_effect_contract", "file_effect_contract"),
                 "tool_effect_kind", "Unsupported tool effect contract kind.", "invalid_request")
+        effects = {**effects, 'read': reads, 'write': writes, 'network': network}
         sensitive = set(self.policy.document["sensitive"])
         home = pwd.getpwuid(uid).pw_dir.rstrip("/")
         sensitive |= {home + suffix for suffix in ("/.ssh", "/.aws", "/.azure", "/.kube", "/.config/gcloud", "/.claude", "/.codex")}
+        if row['mode'] in ('lockdown', 'quarantined'):
+            with self.store.transaction():
+                self.store.event('tool_request_reviewed', {'run': row['id'], 'tool': tool,
+                                 'decision': 'deny', 'reason': 'Administrative recovery required.'}, uid)
+            return {'decision': 'deny', 'reason': 'Run requires administrative recovery.',
+                    'run': row['id'], 'mode': row['mode'], 'terminate_active': True}
         if tool in ("WebFetch", "WebSearch") or network == "external":
             decision, reason, risk = "deny", "External web/MCP/network tool effects are unsupported by this offline profile and fail closed.", min(100, row["score"] + 20)
         elif tool.startswith("mcp__") and kind != "mcp_effect_contract":
@@ -256,11 +318,13 @@ class Engine:
                 body["posture"] = mode
                 if mode == "quarantined":
                     body["state"] = "quarantined"
-                body["trusted_signals"] = (body.get("trusted_signals", []) + [{"signal": event, "source": "tool_gateway", "points": points, "reason": posture_reason}])[-64:]
+                producer = {'kind': 'internal', 'component': 'effect_check', 'uid': self.owner}
+                body["trusted_signals"] = (body.get("trusted_signals", []) + [{"signal": event, "source": "tool_gateway", "producer": producer, "observation": "declared_effects", "points": points, "reason": posture_reason}])[-64:]
                 self.store.db.execute("UPDATE runs SET body=?,mode=?,revision=revision+1,score=MIN(100,score+?) WHERE id=?",
                                       (canonical(body), mode, points, row["id"]))
                 self.store.db.execute("UPDATE grants SET state='revoked_posture' WHERE run=? AND state IN ('issued','pending')", (row["id"],))
-                self.store.event("tool_request_denied", {"run": row["id"], "tool": tool, "reason": reason, "mode": mode}, uid)
+                self.store.event("tool_request_denied", {"run": row["id"], "tool": tool, "reason": reason, "mode": mode,
+                                 'producer': producer, 'observation': 'declared_effects'}, uid)
                 return {"decision": decision, "reason": reason, "run": row["id"], "mode": mode, "terminate_active": True}
             self.store.event("tool_request_reviewed", {"run": row["id"], "tool": tool, "decision": decision}, uid)
         return {"decision": decision, "reason": reason, "run": row["id"], "mode": row["mode"], "terminate_active": False}
@@ -284,31 +348,33 @@ class Engine:
         self.admin(uid, administrative)
         fields(data, {"run", "mode", "seconds", "reason"})
         row = self.admin_run(data["run"])
-        require(data["mode"] in ("normal", "guarded", "lockdown"), "recover_mode", "Recovery mode must be normal, guarded or lockdown.", "invalid_request")
+        require(not row['closed'], 'run_closed', 'Closed runs cannot be recovered.')
+        require(isinstance(data['mode'], str) and data["mode"] in ("normal", "guarded", "lockdown"), "recover_mode", "Recovery mode must be normal, guarded or lockdown.", "invalid_request")
         require(isinstance(data["reason"], str) and 8 <= len(data["reason"]) <= 1000, "recover_reason", "Recovery requires an administrative reason.", "invalid_request")
         seconds = integer(data["seconds"], 1, 86400, "lease seconds")
         now = time.time_ns() // 1000000
         body = decode(row["body"])
         expires = min(body["expires_ms"], now + seconds * 1000)
+        require(expires > now, 'run_expired', 'Expired runs require a new confirmed contract.')
         body["state"] = "active"
         body["posture"] = data["mode"]
+        body['denials'] = 0
         body["lease"] = {"issued_ms": now, "expires_ms": expires, "renewals": int(body.get("lease", {}).get("renewals", 0)) + 1}
         with self.store.transaction():
             self.store.db.execute("UPDATE runs SET body=?,mode=?,revision=revision+1 WHERE id=?", (canonical(body), data["mode"], row["id"]))
             self.store.db.execute("UPDATE grants SET state='revoked_recovery' WHERE run=? AND state IN ('issued','pending')", (row["id"],))
             self.store.history(row["id"], "recovered", {"mode": data["mode"], "expires_ms": expires, "reason": data["reason"]})
             self.store.event("run_recovered", {"run": row["id"], "mode": data["mode"], "expires_ms": expires, "reason": data["reason"]}, uid)
-        return {"run": row["id"], "state": "active", "mode": data["mode"], "lease_expires_ms": expires}
+        return {"run": row["id"], "state": "active", "mode": data["mode"], "lease_expires_ms": expires, 'terminate_active': True}
 
     def _history_decision(self, row: dict, action: dict, decision: dict) -> dict:
         body = decode(row["body"])
-        history = self.store.history_for_run(row["id"], 64)
-        recent_denials = [item for item in history[-20:] if item["kind"] in ("request_denied", "policy_denied", "suspicious_action")]
+        denials = integer(body['denials'], 0, 3, 'persisted denial count')
         reasons = []
         mode = row["mode"]
         require(body.get("state", "active") == "active", "run_contained", "Run is not active; administrator recovery is required.")
         require(mode != "quarantined", "run_quarantined", "Run is quarantined; administrator recovery is required.")
-        if len(recent_denials) >= 3:
+        if denials >= 3:
             mode = "lockdown"
             reasons.append("three or more recent denials require administrator checkpoint before more execution")
         argv_paths = [arg for arg in action["argv"][1:] if isinstance(arg, str) and arg.startswith("/")]
@@ -318,11 +384,37 @@ class Engine:
             reasons.append("argv references sensitive path outside explicit approved inputs")
         if mode == "lockdown":
             return {"decision": "deny", "category": "security_block", "reason": "; ".join(reasons) or "Run is in lockdown.",
-                    "matched": decision.get("matched", []), "history": {"recent_denials": len(recent_denials)}}
+                    "matched": decision.get("matched", []), "history": {"denials_since_review": denials}}
         if mode == "guarded" and decision["decision"] == "allow":
             decision = {**decision, "decision": "ask", "reason": decision["reason"] + " History-aware guarded posture requires approval."}
-        decision["history"] = {"recent_denials": len(recent_denials), "mode": mode, "risk": row["score"]}
+        decision["history"] = {"denials_since_review": denials, "mode": mode, "risk": row["score"]}
         return decision
+
+    def _deny_action(self, row: dict, action: dict, decision: dict, uid: int) -> None:
+        """Commit denial, threshold transition, revocation and evidence together.
+
+        Engine calls are synchronous on the daemon's single event-loop thread;
+        its exclusive Store lock prevents another daemon writer. No request can
+        interleave between this decision and its transaction/exception.
+        """
+        body = decode(row['body'])
+        count = min(3, integer(body['denials'], 0, 3, 'persisted denial count') + 1)
+        mode = max((row['mode'], 'lockdown'), key=MODES.get) if count >= 3 else row['mode']
+        body.update(denials=count, posture=mode)
+        terminate = MODES[mode] >= MODES['lockdown']
+        with self.store.transaction():
+            self.store.db.execute('UPDATE runs SET body=?,mode=?,revision=revision+? WHERE id=?',
+                                  (canonical(body), mode, int(terminate), row['id']))
+            if terminate:
+                self.store.db.execute("UPDATE grants SET state='revoked_history' WHERE run=? AND state IN ('pending','issued','adopted')", (row['id'],))
+            self.store.history(row['id'], 'policy_denied', {'reason': decision['reason'], 'action_digest': digest(action),
+                               'denials_since_review': count, 'mode': mode}, min(100, row['score'] + 20))
+            self.store.event('authorization_denied', {'run': row['id'], 'reason': decision['reason'],
+                             'denials_since_review': count, 'mode': mode, 'terminate_active': terminate}, uid)
+        reason = decision['reason']
+        if count >= 3:
+            reason += ' Repeated recent denials have persisted lockdown; administrative recovery is required.'
+        raise RunDenied(reason, row['id'], terminate)
 
     def prepare(self, data: dict, uid: int) -> dict:
         fields(data, {"run", "session", "action"}, {"supervised"})
@@ -337,10 +429,7 @@ class Engine:
         if decision["decision"] != "deny":
             decision = self._history_decision(row, action, decision)
         if decision["decision"] == "deny":
-            with self.store.transaction():
-                self.store.history(row["id"], "policy_denied", {"reason": decision["reason"], "action": action,
-                                   "matched": decision.get("matched", []), "history": decision.get("history", {})}, min(100, row["score"] + 20))
-        require(decision["decision"] != "deny", "policy_denied", decision["reason"])
+            self._deny_action(row, action, decision, uid)
         envelope = decision["effects"]
         if not self.diagnostic:
             from .backends.linux import workspace_filesystems
@@ -354,10 +443,7 @@ class Engine:
         # The contract narrows project access while retaining separately approved runtime reads.
         policy_roots = self.policy.document["roots"]
         for key in ("read", "write"):
-            project = [p for p in envelope[key] if any(within(p, r) for r in policy_roots)]
-            runtime = [p for p in envelope[key] if p not in project]
-            narrowed = {p if within(p, r) else r for p in project for r in contract["roots"] if within(p, r) or within(r, p)}
-            envelope[key] = sorted(set(runtime) | narrowed)
+            envelope[key] = narrow_project_paths(envelope[key], policy_roots, contract['roots'])
         envelope["execute"] = sorted(set(envelope["execute"]) & set(contract["executables"]))
         if not contract["write"]:
             envelope["write"] = []
@@ -510,11 +596,14 @@ class Engine:
         require(not row["closed"], "run_closed", "Closed runs cannot be reopened.")
         require(isinstance(data["mode"], str) and data["mode"] in MODES and isinstance(data["reason"], str) and 8 <= len(data["reason"]) <= 1000,
                 "checkpoint_reason", "Provide a mode and an administrative reason of 8 to 1000 characters.", "invalid_request")
+        body = decode(row['body'])
+        body.update(denials=0, posture=data['mode'])
         with self.store.transaction():
-            self.store.db.execute("UPDATE runs SET mode=?,revision=revision+1 WHERE id=?", (data["mode"], row["id"]))
+            self.store.db.execute("UPDATE runs SET body=?,mode=?,revision=revision+1 WHERE id=?", (canonical(body), data["mode"], row["id"]))
             self.store.db.execute("UPDATE grants SET state='revoked_checkpoint' WHERE run=? AND state IN ('issued','pending')", (row["id"],))
             self.store.event("administrator_checkpoint", {"run": row["id"], "from": row["mode"], "to": data["mode"],
                              "reason": data["reason"], "labels_retained": True}, uid)
+            self.store.history(row['id'], 'administrator_checkpoint', {'mode': data['mode'], 'reason': data['reason']})
         return {"run": row["id"], "mode": data["mode"], "terminate_active": True}
 
     def close_run(self, data: dict, uid: int) -> dict:

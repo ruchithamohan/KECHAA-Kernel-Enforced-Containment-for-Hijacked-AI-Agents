@@ -18,7 +18,7 @@ from pathlib import Path
 from .backends import preflight
 from .common import (MAX_MESSAGE, KechaaError, canonical, decode, fields, integer,
                      read_bounded, require, trusted_path)
-from .engine import Engine
+from .engine import Engine, RunDenied
 from .policy import load
 from .protocol import peer_credentials
 from .store import Store
@@ -273,7 +273,12 @@ class Server:
         if operation == "run_history":
             return engine.history(data, uid)
         if operation == "prepare":
-            return engine.prepare(data, uid)
+            try:
+                return engine.prepare(data, uid)
+            except RunDenied as exc:
+                if exc.terminate_run is not None:
+                    await self.stop_required(exc.terminate_run)
+                raise
         if operation == "grant_get":
             engine.admin(uid, administrative)
             fields(data, {"grant"})
@@ -326,7 +331,9 @@ class Server:
             await self.stop_required(result["run"])
             return result
         if operation == "run_recover":
-            return engine.recover_run(data, uid, administrative)
+            result = engine.recover_run(data, uid, administrative)
+            await self.stop_required(result['run'])
+            return result
         if operation == "checkpoint":
             result = engine.checkpoint(data, uid, administrative)
             await self.stop_required(result["run"])
@@ -417,8 +424,10 @@ class Server:
             require(raw.endswith(b"\n") and len(raw) <= MAX_MESSAGE, "message_size", "Send one JSON line of at most 256 KiB.", "invalid_request")
             message = fields(decode(raw), {"v", "operation", "data"})
             require(type(message["v"]) is int and message["v"] == 1, "protocol_version", "Only Local API v1 is supported.", "invalid_request")
-            operation = message["operation"]
-            require(isinstance(operation, str) and 1 <= len(operation) <= 32, "operation_invalid", "Invalid operation name.", "invalid_request")
+            candidate = message["operation"]
+            require(isinstance(candidate, str) and 1 <= len(candidate) <= 32, "operation_invalid", "Invalid operation name.", "invalid_request")
+            # Keep the denial-audit operation bounded even when parsing fails.
+            operation = candidate
             require(isinstance(message["data"], dict), "data_invalid", "Operation data must be an object.", "invalid_request")
             result = await self.dispatch(operation, message["data"], uid, administrative)
             response = {"v": 1, "ok": True, "request_id": request_id, "result": result}

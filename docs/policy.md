@@ -102,6 +102,34 @@ Guarded mode removes writes and requires approval. Lockdown holds every action
 until an administrator reviews the checkpoint. Policy-only CLI checks do not
 claim to include the daemon's contract, UID-specific paths or current run state.
 
+### Project reads and runtime dependencies
+
+Project roots must be pairwise disjoint. A read equal to or below a project root
+is project access and is intersected with the confirmed contract. A read outside
+all project roots is retained as a runtime dependency only if it is also disjoint
+from every project root. A strict ancestor of a project root is rejected with
+`policy_read_overlap`; it cannot safely represent a runtime dependency because
+its descendants include project data. This validation also applies to inherited
+profiles, and grant preparation repeats the check.
+
+For example, roots `/work/a` and `/work/b` cannot accompany a runtime read of
+`/work`. List the two project reads explicitly and name disjoint runtime paths,
+such as approved canonical library directories. Alternatively, declare `/work`
+once as a project root: a contract containing `/work/a` then intersects its
+project read to `/work/a`. A child read stays a child; a sibling read disappears;
+a disjoint runtime dependency remains. Writes must already be inside policy
+roots and undergo the same intersection. Executable admission remains a separate
+explicit policy/contract intersection; executable files can also be read.
+
+Absolute paths reject `.`/`..` components, control characters, surrogates and
+globs; the limit is 4096 UTF-8 bytes. Repeated separators, including leading `//`,
+normalize to the local `/` root. Artifact and enforcement-rule descriptor walks
+reject symlinks at every component. These lexical rules do not replace Linux's
+dedicated-volume checks: protected-mode contracts still require whole dedicated
+workspace mounts. A diagnostic subdirectory contract alone does not establish
+Linux mount isolation. Mount administration and approved runtime dependencies
+remain trusted.
+
 ## Authoring and activation
 
 ```bash

@@ -155,6 +155,58 @@ credential exposure, guarded removes writes and asks, score 60 locks down.
 Only administration can relax mode; labels/history remain. This is deterministic
 policy tightening, not observed-effect goal drift or malicious-intent detection.
 
+### S1–S4 control-plane remediation
+
+Three policy/history authorization denials since the last administrative review
+persist lockdown. The threshold counter, posture/revision change, revocation of
+pending/issued/adopted grants, history entry and signed audit event commit in one
+SQLite transaction. Requests are serialized by the daemon event loop; the state
+directory has an exclusive writer lock. Benign history entries and restart do
+not reset this counter. Schema, identity and contract errors rejected before
+policy evaluation are not counted as policy denials. Active worker termination
+is requested before the threshold-denial response; failed cleanup holds admission.
+
+`checkpoint` and `run recover` require the administrative socket and daemon-owner
+UID. They reset the counter, retain labels/history, revoke outstanding authority
+and request active-worker termination. Recovery cannot extend the originally
+confirmed run lifetime or reopen a closed run. Legacy open runs without a
+versioned counter start in lockdown because their bounded history cannot prove
+that earlier denials were not diluted. Unknown counter versions fail startup.
+
+Tool declarations are requests to check declared effects, not execution grants
+or proof that a tool performed those effects. The canonical operation-data object
+is limited to 16 KiB; `read`/`write`, when present, must each be arrays of at most
+64 valid absolute paths. Omitted arrays mean empty; explicit null is invalid.
+`network` is `offline` or `external` (external is denied); `kind`, if present, is
+`file_effect_contract` or `mcp_effect_contract`. Unknown fields/types fail with a
+structured client error. Invalid operation names cannot expand denial audit
+records. Ordinary malformed requests do not intentionally poison daemon health;
+genuine storage/audit failure still fails closed. The finite audit capacity means
+sustained request flooding can still exhaust storage and hold admission.
+
+On `trusted_event`, the agent endpoint accepts only `source=client_report`, bound
+to the peer UID/run/session. The administrative endpoint accepts only
+`source=admin`, authenticated by the daemon-owner UID. Neither endpoint accepts
+`kernel`, `supervisor` or `tool_gateway` observations. The in-process
+`Engine.internal_event` API is for trusted daemon code and is not a Unix operation;
+it does not create a kernel collector or authenticate an external producer.
+New posture history, signals and signed records retain the authenticated producer
+role/UID; internal records also identify the component. Agent reports live in
+`signals`, while administrative/internal observations live in `trusted_signals`.
+Tool-checker observations explicitly say `declared_effects`. Human-readable
+reasons remain untrusted text and must not be parsed as producer identity.
+
+Pre-remediation signed events are preserved verbatim: their source labels may
+have been client supplied. A valid historical signature authenticates those
+bytes, not the claimed producer. Do not retroactively treat them as verified
+kernel observations.
+
+Current remediation evidence and upgrade instructions are in
+[the S1–S4 report](../audit/KECHAA_S1_S4_REMEDIATION_REPORT.md).
+That pass exercised macOS Unix sockets, SQLite, descriptor walks and lifecycle
+routing. It did not rerun Linux Landlock, mount namespaces or cgroup enforcement;
+earlier Linux reports are historical evidence for earlier code.
+
 ## Interface provenance
 
 Independent implementation uses documented

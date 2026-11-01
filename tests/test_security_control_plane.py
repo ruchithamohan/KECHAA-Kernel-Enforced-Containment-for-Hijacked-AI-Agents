@@ -110,7 +110,7 @@ class SecurityControlPlaneTests(unittest.TestCase):
 
     def test_trusted_event_quarantines_without_agent_cooperation(self):
         run = self._open_run()
-        result = self.engine.trusted_event({"run": run["run"], "session": "session", "label": "agent_compromise", "source": "supervisor"}, self.uid)
+        result = self.engine.internal_event(run['run'], 'agent_compromise', source='supervisor')
         self.assertEqual(result["state"], "quarantined")
         self.assertTrue(result["terminate_active"])
 
@@ -143,7 +143,7 @@ class SecurityControlPlaneTests(unittest.TestCase):
 
     def test_tool_gateway_requires_approval_for_guarded_write(self):
         run = self._open_run()
-        self.engine.trusted_event({"run": run["run"], "session": "session", "label": "untrusted_web", "source": "tool_gateway"}, self.uid)
+        self.engine.internal_event(run['run'], 'untrusted_web', source='tool_gateway')
         result = self.engine.tool_request({"run": run["run"], "session": "session", "tool": "FileWrite",
                                            "effects": {"network": "offline", "read": [], "write": [str(self.root / "out.txt")]}}, self.uid)
         self.assertEqual(result["decision"], "ask")
