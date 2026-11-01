@@ -5,33 +5,33 @@ const demoOutput = document.querySelector('#demo-output');
 
 const demoSteps = [
   {
-    title: 'Permitted task action',
+    title: 'Authorized task action',
     lines: [
-      '$ kechaa run --task contract.yaml -- python agent.py summarize ./fixtures/report.txt',
-      'grant: verified signature, unused grant id, active lease',
-      'history: no prior violations for agent=session-dev-01',
-      'decision: ALLOW — action matches task contract',
-      'audit: event anchored with decision, grant id and session id'
+      '$ kechaa run --task contract.yaml -- python agent.py summarize ./workspace/report.txt',
+      'contract: workspace root + approved executable + active lease',
+      'grant: signature verified, action bound, single-use token issued',
+      'decision: ALLOW',
+      'audit: contract_confirmed → grant_prepared → grant_consumed'
     ]
   },
   {
-    title: 'Prohibited external effect',
+    title: 'Risky tool request',
     lines: [
-      '$ agent requests: upload ./fixtures/secret.txt to external endpoint',
-      'effect contract: network egress not authorized for this task',
-      'history: sensitive file access occurred earlier in session',
-      'decision: DENY + posture escalated',
-      'enforcement: supported gateways fail closed; Linux OS enforcement requires LC certification'
+      '$ agent requests: tool effect { read: ./workspace, network: external }',
+      'tool gateway: effect contract evaluated before action',
+      'history: prior file access is part of the policy context',
+      'decision: DENY',
+      'posture: trusted event recorded and grants tightened'
     ]
   },
   {
-    title: 'Follow-up after suspicious sequence',
+    title: 'Follow-up decision',
     lines: [
-      '$ agent retries with a different tool path',
-      'history: previous denial influences the next decision',
-      'lease: still active, but risk posture is quarantined',
-      'decision: DENY — sequence violates policy context',
-      'recovery: administrator can inspect audit trail and restore or terminate session'
+      '$ agent retries through another path',
+      'history: previous denial changes the decision context',
+      'lease: checked against current session state',
+      'decision: ADMIN REVIEW',
+      'audit: sequence preserved for recovery and investigation'
     ]
   }
 ];
@@ -74,7 +74,7 @@ if ('IntersectionObserver' in window) {
       }
     });
   }, { threshold: 0.14 });
-  document.querySelectorAll('.reveal, .section-heading, .feature-card, .risk-grid article, .use-grid article, .demo-panel, .docs-list a, details').forEach((element) => observer.observe(element));
+  document.querySelectorAll('.reveal, .section-heading, .feature-card, .risk-grid article, .use-grid article, .demo-panel, .docs-list a').forEach((element) => observer.observe(element));
 } else {
   document.querySelectorAll('.reveal').forEach((element) => element.classList.add('is-visible'));
 }

@@ -1,6 +1,6 @@
 # KECHAA Marketing Website
 
-This directory contains the static marketing website for KECHAA. It is intentionally separate from the Python security package and uses no runtime dependencies.
+This directory contains the static marketing website for KECHAA. It is separate from the Python security package and uses no runtime dependencies.
 
 ## Local preview
 
@@ -20,7 +20,7 @@ Manual repository setting required once:
 1. Open the repository settings on GitHub.
 2. Go to **Pages**.
 3. Set **Build and deployment** source to **GitHub Actions**.
-4. Merge the website branch to `main` or run the workflow manually if the branch is trusted.
+4. Merge website changes to `main` or run the workflow manually from a trusted branch.
 
 Expected GitHub Pages URL after deployment:
 
@@ -28,11 +28,6 @@ Expected GitHub Pages URL after deployment:
 https://ruchithamohan.github.io/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/
 ```
 
-## Claim discipline
+## Content direction
 
-Homepage language is intentionally product-led but evidence bounded:
-
-- Control-plane capabilities are described as implemented where supported by repository code and tests.
-- Linux whole-agent containment is described as pending certification until LC-001 through LC-013 run in a disposable Linux VM.
-- MCP language is limited to effect-contract authorization, not complete protocol mediation.
-- Production readiness is not claimed.
+The homepage is intentionally concise and product-led. It focuses on implemented KECHAA concepts: signed grants, task contracts, history-aware policy, supervised execution architecture, tool effect contracts, quarantine, recovery and audit evidence.
