@@ -1,10 +1,10 @@
 # KECHAA Safe Demonstration Package
 
-This package is a neutral, reusable demonstration guide. It is not event-specific and does not claim Linux certification by itself.
+Start with the [runnable examples](../examples/README.md). This package is a neutral, reusable demonstration guide. It is not event-specific and does not claim Linux certification by itself.
 
 ## Demo Modes
 
-### Mode A — Certified Linux Demo
+### Mode A — Linux enforcement demonstration (not yet certified)
 
 Use only after LC-001 through LC-013 are executed in a disposable Linux VM.
 
@@ -28,14 +28,14 @@ Expected sequence:
 Use only when Linux is unavailable. State clearly that this is not OS-enforcement evidence.
 
 ```bash
-python tools/demo_attack_defense.py
-python tools/certify_linux.py run
+.venv/bin/python -IS bin/kechaa demo
+.venv/bin/python tools/certify_linux.py preflight
 ```
 
 Expected result:
 
-- The demo shows a permitted grant, external effect denial, posture tightening, and follow-up action requiring approval.
-- Certification run reports `certified=false` and exits nonzero outside Linux.
+- The demo shows real Unix policy/grant/audit operations, pending approval, replay rejection and external declared-effect denial; all command grants are simulated.
+- Preflight reports `ready=false` and exits 3 outside Linux. It does not execute certification scenarios.
 
 ## Required Safety Controls
 

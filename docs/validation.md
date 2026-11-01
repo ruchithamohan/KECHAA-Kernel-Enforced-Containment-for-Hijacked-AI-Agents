@@ -1,3 +1,5 @@
+> Historical evaluation snapshot. For current evidence see the [S1–S4 report](../audit/KECHAA_S1_S4_REMEDIATION_REPORT.md) and [platform status](linux-requirements.md). Statements below describe the original experiment, not current HEAD.
+
 > Historical 0.1.0a1 diagnostic evidence. For current Linux VM results, fixes,
 > and release status see [completion.md](completion.md). Statements below about
 > unavailable virtualization describe that earlier attempt only.

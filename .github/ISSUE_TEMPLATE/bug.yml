@@ -1,0 +1,27 @@
+name: Bug report
+description: Report a reproducible problem with installation, policy or execution.
+body:
+  - type: markdown
+    attributes:
+      value: "For vulnerabilities, follow SECURITY.md. Use synthetic data; exclude keys, private paths and credentials."
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment and version
+      description: Commit/version, Python, OS/kernel, diagnostic or experimental Linux mode.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction and expected result
+      description: Minimal command and sanitized policy/contract; explain what should happen.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Actual result and evidence
+      description: Error code, exit status and relevant sanitized output. Separate simulation from kernel observations.
+    validations:
+      required: true

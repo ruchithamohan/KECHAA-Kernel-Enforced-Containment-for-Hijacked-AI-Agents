@@ -1,94 +1,137 @@
 # KECHAA
 
-KECHAA binds an agent command's approval to an explicit effect envelope. A
-root-owned Python daemon issues single-use signed grants, then starts the action
-under Linux filesystem, syscall, namespace and process-lifetime restrictions.
-Thin adapters share the same YAML policy engine and local API.
+**Authorization-bound execution for agent tools.**
 
-**KECHAA 0.2.0a1 is an experimental Linux containment alpha, not production-ready.**
-PR #11 adds supervised agent launch, history-aware controls, MCP effect-contract
-authorization, audit anchoring and a fail-closed Linux certification harness.
-Current mainline validation also records Linux VM operation for offline command
-and package workflows, filesystem and network denials, approval binding,
-descendant cleanup and daemon-loss handling. No readiness percentage is claimed.
+KECHAA — Kernel-Enforced Containment for Hijacked AI Agents — puts a local authorization daemon between an agent and command execution. It binds each command to a task contract and a single-use signed grant. Its experimental Linux worker applies filesystem, syscall, network and process-lifetime restrictions to that command and its descendants.
 
-| Platform | Available | Execution boundary |
+**Evaluation alpha, not production-certified.** The diagnostic walkthrough works on macOS and Linux without root. It exercises real policy, Unix IPC, grants and audit records, but executes no agent commands. Current Linux verification gaps are [explicitly tracked](docs/linux-requirements.md).
+
+[Start here](docs/getting-started.md) · [Architecture](docs/architecture.md) · [Security model](docs/security.md) · [Examples](examples/README.md) · [Contribute](CONTRIBUTING.md)
+
+## Try it in five minutes
+
+Prerequisites: Git, Python 3.11+ with `venv`/pip, macOS or Linux, and permission to create local Unix sockets. Use your ordinary user account. Downloading dependencies needs internet access; the demo itself is offline.
+
+```bash
+git clone https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents.git
+cd KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -IS bin/kechaa demo
+```
+
+Representative output, abbreviated:
+
+```text
+KECHAA diagnostic demo — real Unix API, no command execution
+ALLOW            allow        Signed grant consumed with executed=false (simulation).
+BLOCK            replay       Consumed grant cannot be reused.
+PENDING_APPROVAL approval     No command ran. The disposable operator inspects both grant digests.
+BLOCK            destructive  Policy denied the request before execution.
+BLOCK            filesystem   Policy denied the request before execution.
+ALLOW            mcp          offline declared effects; no MCP server was invoked.
+BLOCK            mcp          external declared effects; no MCP server was invoked.
+Audit: verified. Cleanup: temporary daemon, keys, state and files removed.
+```
+
+The demo creates and stops a real diagnostic daemon in a fresh temporary directory. It uses synthetic data and removes its temporary keys, state and files on exit. `--json` returns machine-readable results. [Individual scenarios and their boundaries](examples/README.md) explain exactly what ran.
+
+For a standalone installation with a pinned interpreter:
+
+```bash
+.venv/bin/python -IS tools/install.py install --prefix .local/install
+.local/install/bin/kechaa demo
+.venv/bin/python -IS tools/install.py verify --prefix .local/install
+```
+
+The installer starts no service and makes no PATH changes. Use a new empty prefix; it refuses overwrites. A conventional `pip install kechaa` is **not** the supported CLI installation: the launcher deliberately requires isolated Python startup. [Install, troubleshoot and remove](docs/getting-started.md).
+
+## Why an execution boundary?
+
+An agent can be redirected by repository text, web content or a tool response. A prompt asking it to stay inside a directory does not constrain the operating system. Even a command approval can become stale if its arguments, inputs, policy or session change before execution.
+
+KECHAA addresses that gap with explicit authorization and bounded effects. A grant binds the reviewed command, inputs, identity, policy and expiry; adoption rechecks them and consumes the grant once. Three policy denials persist lockdown until authenticated administrative review. It does not detect every prompt injection or decide whether an authorized action is wise.
+
+Primary users are agent infrastructure engineers evaluating offline command tools and Linux security engineers examining their execution boundary. Useful scenarios include local coding/build tools, approval queues, command replay protection and containment research. Arbitrary remote MCP servers, online agents and database authorization need other controls.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Agent or tool adapter] -->|Unix API: request action| D[KECHAA daemon]
+    O[Administrator] -->|Separate socket and OS identity| D
+    P[Policy and task contract] --> D
+    D <-->|Atomic state and signed evidence| S[(SQLite and audit key)]
+    D -->|One-use grant adoption| W[Linux worker]
+    W --> K[Landlock, seccomp, namespaces, cgroups]
+    K --> C[Command and descendants]
+```
+
+```mermaid
+flowchart LR
+    R[Prepare exact argv and cwd] --> E[Evaluate policy, contract and posture]
+    E --> B[BLOCK: no grant]
+    E --> P[PENDING: operator inspects digests]
+    E --> G[Issued grant]
+    P --> G
+    G --> V[Recheck and consume once]
+    V --> L[Linux execution and cleanup]
+```
+
+Diagnostics replace the final execution step with explicit simulation. The administrator and daemon are trusted. An adapter cannot approve its own request; a disconnected client cannot recover a consumed grant. [Detailed flow, failure handling and trust boundaries](docs/architecture.md).
+
+## Capabilities and evidence
+
+| Capability | Enforcement location | Current evidence and limit |
 |---|---|---|
-| Linux ARM64 | CLI, daemon, policies, grants, audit and experimental launcher | Exercised on Debian 13 / Linux 6.12.113; dedicated workspace filesystem required |
-| Linux x86_64 | CLI, daemon and experimental launcher | Basic Debian 13 / Linux 6.12.113 scenarios operated; broader coverage unverified |
-| macOS | CLI, policies, diagnostic grant/state/audit operations | Native protected execution disabled; Linux VM operation is not native macOS containment |
+| Policy/contract intersection, exact-action grants, replay rejection | Python daemon + SQLite transactions | Real Unix API regressions and runnable demo |
+| Persistent denial lockdown; authenticated recovery | Daemon state + administrative endpoint | Flooding, concurrency and restart regressions |
+| Producer identity in signed audit records | Authenticated endpoint/internal daemon context | Persistence and export verified; no kernel effect collector |
+| Project read/write restrictions | Linux Landlock and private mount restrictions | Historical Debian VM observations; current S3 Linux acceptance incomplete |
+| Offline network/syscall restrictions | Linux namespaces and seccomp | Implemented; historical VM observations, no online profile |
+| Descendant resource limits and termination | Linux cgroups and lifecycle supervision | Implemented; current patch's kernel lifecycle checks not rerun |
+| MCP effect declarations | Daemon authorization check | Real API example; no MCP invocation, proxy or remote enforcement |
+| Custom Python / function-call tools | Thin Local API adapter | Runnable diagnostic integration; no framework-wide interception claim |
 
-The Linux profile is **offline only**. It requires Landlock ABI 6+, seccomp,
-private namespaces, read-only mount restrictions, a prepared cgroup v2 subtree,
-a root-owned installation, and a separate unprivileged action account. Each
-confirmed project root must occupy a dedicated ext4 or tmpfs filesystem with no
-alternate or nested mounts. Ordinary shared host directories are refused because
-pre-existing hardlinks can cross apparent path boundaries.
+## Integrate a command tool
 
-## Install and inspect
+The [Python client](kechaa/client.py) keeps authorization in the daemon:
 
-Use a reviewed Python 3.11+ environment with the pinned dependencies in
-`requirements.txt`. The installer itself never downloads dependencies or starts
-services, edits shell profiles, changes PATH, or prepares kernel controls.
+```python
+from kechaa.client import AgentClient
 
-```bash
-python -IS tools/install.py install --prefix ./installation --python /absolute/path/to/python
-./installation/bin/kechaa version
-python -IS tools/install.py verify --prefix ./installation
-./installation/bin/kechaa doctor
+# An operator has already confirmed this run and prepared the Linux environment.
+client = AgentClient('/run/kechaa/agent.sock', run='RUN_ID', session='SESSION')
+prepared = client.prepare(['/usr/bin/echo', 'hello'], cwd='/work/project')
+if prepared['state'] == 'pending':
+    # Surface the grant ID to the operator; do not execute or auto-approve.
+    print('PENDING_APPROVAL', prepared['grant'])
+else:
+    result = client.execute(prepared)
 ```
 
-`doctor` exits 3 when required execution prerequisites are unavailable. It is a
-read-only probe, not certification of a protected deployment.
+This Linux integration snippet needs real run/session identifiers and administrator-prepared roots. For a runnable local version use `demo --scenario agent`. The client also translates a `run_command` function-call message without an SDK or API key. See [adapter development](docs/adapter-development.md), [API reference](docs/api.md), and the [custom agent example](examples/agent_tool.py).
+
+## Security and platform limits
+
+- macOS: diagnostic control plane only. Windows: unsupported. Linux: experimental x86_64/aarch64 backend requiring Landlock ABI 6+, cgroup v2, namespaces, seccomp and a root-owned installation.
+- Protected workspace roots must be dedicated ext4/tmpfs filesystems, without bind aliases or nested mounts. Ordinary shared host directories are refused. [Linux prerequisites](docs/linux-requirements.md).
+- The host kernel, administrator, runtime dependencies, daemon and signing key are trusted. Same-UID processes are not separate hostile identities.
+- Allowed effects can still be harmful. Runtime libraries remain trusted; writable/transitive inputs are not generally frozen. Stdout/stderr are intentional output channels.
+- A wrapper protects only submitted actions. Supervised launch exists, but real agent-harness interception and full MCP mediation remain unverified.
+- Audit signatures establish integrity, not immutable storage or proof of every attempted effect. Finite audit capacity can be exhausted. Remote SQL semantics and credential management are out of scope.
+
+Read the [threat model](docs/security.md), [S1–S4 remediation report](audit/KECHAA_S1_S4_REMEDIATION_REPORT.md), [current performance methodology](docs/performance.md) and [release gates](docs/release.md) before a pilot. Historical Linux results are not current certification.
+
+## Development and contribution
 
 ```bash
-kechaa policy init --root /absolute/dedicated/project --output policy.yaml
-kechaa policy validate policy.yaml
-kechaa policy explain policy.yaml --cwd /absolute/dedicated/project -- /usr/bin/echo hello
-kechaa diagnostic --state ./diagnostic-state --policy policy.yaml --admin --duration 300
+.venv/bin/python -m unittest discover -s tests -v
+.venv/bin/python tools/check_docs.py
 ```
 
-The explicitly non-executing console accepts Local API JSON lines such as
-`{"v":1,"operation":"health","data":{}}`. EOF ends it. To execute in a prepared
-Linux VM, follow [installation and operations](docs/operations.md), then the
-[contract, approval and execution workflow](docs/integrations.md).
+The full existing suite uses macOS fixtures; [contribution instructions](CONTRIBUTING.md) give the portable Linux subset and explain skipped kernel probes. CI runs existing tests, demos, documentation links and installation checks. No badge claims a certification result.
 
-## Implemented capabilities
+Start with a reproducible installation issue, an adapter example or a documented Linux observation. See the [documentation index](docs/README.md), [roadmap](docs/roadmap.md), [changelog](CHANGELOG.md) and [security reporting policy](SECURITY.md).
 
-- Strict YAML profiles, deterministic allow/ask/deny precedence, explanations,
-  schema export, policy history, atomic import, scoped expiry and reviewed rollback.
-- Ed25519 grants bound to argv, cwd identity, UID/session, policy, effects,
-  executable/input digests and expiry; atomic adoption and restart invalidation.
-- Linux Landlock, seccomp, private read-only mounts, namespaces, privilege dropping,
-  cgroup limits, bounded output, expiry and descendant termination.
-- Persistent contracts, one live session per OS UID, expiry and label-driven monotonic tightening.
-- Signed audit records and checkpoints, verification/export, authenticated offline
-  backup and restoration into a new state directory; checkpoint-bound public evidence bundles.
-- Generic execution CLI and Local API v1; a Claude hook adapter whose real-harness
-  compatibility remains unverified.
-
-A wrapper covers only actions submitted through it. Whole-agent interception,
-immutable writable builds and arbitrary transitive inputs, positive network permissions, renewable leases,
-complete kernel effect observation and native macOS enforcement are not shipped.
-Read-only work can opt into `immutable-workspace` contracts on administrator-prepared
-read-only volumes. Startup disables Python site hooks and checks root ownership
-of application and dependency files. Aggregate CPU budgets cover descendants.
-See the [audit follow-up](docs/completion.md#audit-handoff-hardening) for actual use and remaining gaps.
-Labels can tighten policy; they do not establish observed-effect drift or intent.
-
-## Guides and release artifacts
-
-- [Installation, upgrade, backup, recovery and uninstall](docs/operations.md)
-- [YAML policy reference](docs/policy.md)
-- [Adapters and protocol](docs/integrations.md)
-- [Threat model and trust boundaries](docs/security.md)
-- [Actual validation and performance](docs/completion.md)
-- [Release blockers](docs/release.md)
-- [Documentation-only comparison](docs/comparison.md)
-- [Dependency/license provenance](docs/provenance.md) and [security reporting](SECURITY.md)
-
-`python tools/package.py` produces a deterministic source archive, file manifest,
-limited-scope CycloneDX SBOM and SHA-256 checksum. It excludes the architecture
-PDF, `.local`, keys, state and lab data. Checksums are not release signatures.
-Original source is MIT licensed. See [release notes and publication procedure](docs/release.md)
-for the alpha's scope, verification steps and remaining production release gates.
+MIT licensed. [Dependency acknowledgements and provenance](docs/provenance.md).

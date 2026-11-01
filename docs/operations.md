@@ -4,6 +4,12 @@ This alpha is for evaluation. Native macOS execution is unavailable; Linux
 execution is experimental and requires a disposable VM. No install command starts
 a service, changes PATH, alters login files or configures host kernel features.
 
+Start with [getting started](getting-started.md) for a self-contained local demo.
+The commands below that contain deployment paths, IDs or digests are operator
+templates, not a workstation setup script. Historical experiment statements are
+qualified by [completion.md](completion.md); current requirements are in
+[linux-requirements.md](linux-requirements.md).
+
 ## Requirements and offline installation
 
 The control plane requires CPython 3.11+ and the exact versions in
@@ -113,7 +119,7 @@ On supported Linux execution, shutdown kills active action cgroups. On restart,
 only exact `action-<48 hex digits>` names inside the configured dedicated subtree
 are reconciled. Unknown cgroups are never recursively removed. Cleanup failure
 holds execution. Unused/stale grants are revoked; runs, labels, scores and policy
-versions persist. No lease is resumed or renewed.
+versions persist. Original run lifetime bounds remain. Administrative lease renewal/recovery is explicit and cannot exceed that lifetime.
 
 Shutdown stops request admission and cancels outstanding handlers. Cleanup is
 shielded from repeated cancellation, attempts cgroup and supervisor termination
@@ -165,8 +171,7 @@ implemented seamless rotation or migration feature.
 
 Install a new version into a new empty prefix, check `version`, validate the policy,
 and preserve a consistent state/key/public-key backup while the old daemon is
-stopped. Unknown schema versions are rejected. No automatic schema migration is
-provided for this initial schema. Do not run old and new daemons on the same state
+stopped. Unknown schema versions are rejected. Unversioned denial counters are conservatively migrated to lockdown; unknown versions are refused. Review the S1–S4 migration instructions before upgrading. Do not run old and new daemons on the same state
 or socket directory. Restart invalidates old grants.
 
 Remove only files whose hashes still match the installation manifest:

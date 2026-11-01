@@ -102,7 +102,8 @@ reconciliation. CPU/memory/pids/output/wall/per-file limits bound actions. Aggre
 uses the cgroup counter sampled every 50 ms, with scheduling-dependent overshoot,
 alongside per-process RLIMIT_CPU. Cleanup confirms an empty cgroup before removal. Disk
 capacity must also be bounded by the prepared volume; file-size limits alone do
-not limit cumulative disk use. Leases and live permission widening are unavailable.
+not limit cumulative disk use. Administrative lease recovery is bounded by the
+original contract lifetime; live permission widening is unavailable.
 
 ## Threat coverage and limits
 

@@ -38,7 +38,7 @@
         <div class="hero-copy reveal">
           <div class="eyebrow">Experimental AI agent security architecture</div>
           <h1>Your AI agents. Your rules. Your security boundary.</h1>
-          <p class="hero-lede">KECHAA is designed to govern autonomous AI agent execution through trusted authorization, execution history, task boundaries and operating-system containment architecture.</p>
+          <p class="hero-lede">KECHAA binds agent commands to task contracts and signed single-use grants. Try real policy, approval and audit flows locally; evaluate experimental offline Linux containment in a prepared VM.</p>
           <div class="hero-actions" aria-label="Primary actions">
             <a class="button button-primary" href="#approach">Explore KECHAA</a>
             <a class="button button-ghost" href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents">View GitHub</a>
@@ -212,11 +212,10 @@ Select a step to inspect the authorization flow.</pre>
           <h2>Explore locally, certify carefully.</h2>
           <p>KECHAA keeps the Python package and website separate. The current safe path is to explore policy, grants, audit and demos locally, then run OS-enforcement certification inside a disposable Linux VM.</p>
           <div class="code-card">
-<pre><code>python tools/install.py install --prefix ./installation --python /absolute/path/to/python
-./installation/bin/kechaa version
-python -m unittest discover -v
-python tools/demo_attack_defense.py
-python tools/certify_linux.py run</code></pre>
+<pre><code>python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -IS bin/kechaa demo
+.venv/bin/python -IS bin/kechaa doctor</code></pre>
           </div>
         </div>
         <div class="docs-list">

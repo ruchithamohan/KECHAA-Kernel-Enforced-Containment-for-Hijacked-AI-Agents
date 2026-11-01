@@ -1,3 +1,5 @@
+> Historical VM and diagnostic observations for the revisions described below. They do not certify current HEAD. See [current Linux status](linux-requirements.md) and [current diagnostic measurements](performance.md).
+
 # Operational evidence — 2026-10-29, KECHAA 0.2.0a1
 
 This report records actual installed-product operation, not source inspection

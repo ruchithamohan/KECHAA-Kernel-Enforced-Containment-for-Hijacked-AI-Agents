@@ -6,6 +6,10 @@ Run/session strings are binding context, not independent authenticated identitie
 between hostile processes sharing the same UID. A second live session for a UID
 is refused with `identity_in_use`; separate hostile tenants need separate OS accounts.
 
+For the current small Python client and function-call mapping, start with
+[adapter development](adapter-development.md) and the [API reference](api.md).
+The [examples](../examples/README.md) separate runnable diagnostics from deployment templates.
+
 ## Local API v1
 
 Use a Unix-domain stream socket. Send one UTF-8 JSON line and close the request
@@ -118,12 +122,12 @@ processes and full MCP server protocol proxying are not claimed as protected.
 | Integration | Translation code | Real operation verified | Scope |
 |---|---|---|---|
 | Generic CLI and diagnostic console, Python 3.14.8/macOS Darwin 27 | Implemented | Installation, policies, grants and audit console | No execution |
-| Local Unix API, Debian ARM64/x86_64 | Implemented | Real sockets, UID roles, execution, restart and cancellation exercised | Root daemon; UID 1001 actions in disposable VM |
-| Local Unix API, macOS | Implemented | BLOCKED: socket bind denied by host sandbox | macOS peer credentials remain unverified |
+| Local Unix API, Debian ARM64/x86_64 | Implemented | Historical VM observations; current patch not recertified | Root daemon; separate action UID and dedicated volumes |
+| Local Unix API, macOS | Implemented | Actual Unix socket S1–S4 regressions and current demo operated | Diagnostic only; peer credentials and endpoint roles exercised |
 | Claude hook API | Implemented against inspected public docs | UNVERIFIED; no installed version | Bash rewriting and explicit administrator approval |
 | Codex CLI | Generic wrapper path only | UNVERIFIED | No native hook adapter or settings changes |
 | Gemini CLI | Generic wrapper path only | UNVERIFIED | No native hook adapter |
-| MCP/non-shell tool effects | Effect-contract authorization implemented; full protocol proxy not implemented | Unit tests only; Linux certification blocked on macOS | Explicit offline MCP effects may be allowed; uncontracted/external effects fail closed |
+| MCP/non-shell tool effects | Effect-contract authorization implemented; full protocol proxy not implemented | Real Unix declaration checks and demo operated | No MCP invocation or remote enforcement |
 
 Additional adapters should translate to Local API v1, document cancellation,
 resume, input rewriting and interception guarantees for their exact version,

@@ -1,0 +1,54 @@
+name: Control plane and documentation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+        python: ['3.11', '3.14']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pinned dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install -r requirements.txt
+      - name: Existing full suite (macOS fixtures)
+        if: runner.os == 'macOS'
+        run: .venv/bin/python -m unittest discover -s tests -v
+      - name: Existing portable regressions and Linux probes (skips are not certification)
+        if: runner.os == 'Linux'
+        run: .venv/bin/python -m unittest tests.test_remediation_unix tests.test_remediation_invariants tests.test_remediation_attack_retest tests.test_remediation_linux -v
+      - name: Source demo and documentation links
+        run: |
+          .venv/bin/python -IS bin/kechaa demo
+          .venv/bin/python examples/sqlite_task.py
+          .venv/bin/python tools/check_docs.py
+      - name: Install and verify explicit-prefix distribution
+        run: |
+          .venv/bin/python -IS tools/install.py install --prefix .local/ci-install
+          .venv/bin/python -IS tools/install.py verify --prefix .local/ci-install
+          .local/ci-install/bin/kechaa demo --json
+          .venv/bin/python -IS tools/install.py uninstall --prefix .local/ci-install
+      - name: Build source distribution
+        run: .venv/bin/python tools/package.py --output .local/ci-dist

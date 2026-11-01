@@ -7,15 +7,24 @@ from pathlib import Path
 import tarfile
 import json
 import tomllib
+import argparse
+
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--output', type=Path, help='Artifact directory; default: dist')
+args = parser.parse_args()
 
 root = Path(__file__).resolve().parent.parent
 project = tomllib.loads((root / 'pyproject.toml').read_text())['project']
 version = project['version']
-files = [root / name for name in ("README.md", "LICENSE", "SECURITY.md", "pyproject.toml", "requirements.txt", "requirements-linux-arm64-cp313.lock", "requirements-linux-x86_64-cp313.lock", ".gitignore", "bin/kechaa")]
-for directory, pattern in (("kechaa", "*.py"), ("tools", "*.py"), ("docs", "*.md"), ("examples", "*.yaml"), ("examples", "*.json")):
+files = [root / name for name in ("README.md", "LICENSE", "SECURITY.md", "CONTRIBUTING.md", "CHANGELOG.md", "pyproject.toml", "requirements.txt", "requirements-linux-arm64-cp313.lock", "requirements-linux-x86_64-cp313.lock", ".gitignore", "bin/kechaa")]
+for directory, pattern in (("kechaa", "*.py"), ("tools", "*.py"), ("docs", "*.md"), ("examples", "*.yaml"), ("examples", "*.json"),
+                           ("examples", "*.py"), ("examples", "*.md"), ("tests", "*.py"), ("audit", "*.md"),
+                           ("audit/security-phase1-evidence", "*.json"), ("audit/security-phase1-evidence", "*.txt"),
+                           ("audit/security-phase1-evidence", "*.py"), ("audit/adoption-evidence", "*.json"),
+                           ("audit/adoption-evidence", "*.txt"), (".github", "*.yml"), (".github", "*.md")):
     files.extend((root / directory).rglob(pattern))
-destination = root / "dist"
-destination.mkdir(exist_ok=True)
+destination = args.output or root / "dist"
+destination.mkdir(parents=True, exist_ok=True)
 archive = destination / ("kechaa-" + version + "-source.tar.gz")
 payloads = {}
 for path in sorted(set(files)):

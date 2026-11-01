@@ -1,0 +1,86 @@
+[
+  {
+    "command": "<checkout>/.venv/bin/python -m venv <checkout>/.local/adoption/fresh-runtime",
+    "exit_code": 0,
+    "seconds": 1.497,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": "<checkout>/.local/adoption/fresh-runtime/bin/python -m pip install -r requirements.txt",
+    "exit_code": 0,
+    "seconds": 0.859,
+    "stdout": "Pinned dependencies installed successfully in a fresh virtual environment; download cache was available.",
+    "stderr": ""
+  },
+  {
+    "command": "<checkout>/.local/adoption/fresh-runtime/bin/python -BIS bin/kechaa version",
+    "exit_code": 0,
+    "seconds": 0.385,
+    "stdout": "{\n  \"control_plane\": [\n    \"Linux\",\n    \"macOS\"\n  ],\n  \"os\": \"Darwin\",\n  \"production_ready\": false,\n  \"python\": \"3.14.8\",\n  \"release\": \"alpha\",\n  \"version\": \"0.2.0a1\"\n}\n",
+    "stderr": ""
+  },
+  {
+    "command": "<checkout>/.local/adoption/fresh-runtime/bin/python -BIS bin/kechaa demo",
+    "exit_code": 0,
+    "seconds": 0.878,
+    "stdout": "KECHAA diagnostic demo \u2014 real Unix API, no command execution\nALLOW            allow        Signed grant consumed with executed=false (simulation).\nBLOCK            replay       Consumed grant cannot be reused.\nPENDING_APPROVAL approval     No command ran. The disposable operator inspects both grant digests.\nALLOW            approval     Signed grant consumed with executed=false (simulation).\nBLOCK            destructive  Policy denied the request before execution.\nBLOCK            filesystem   Policy denied the request before execution.\nALLOW            mcp          offline declared effects; no MCP server was invoked.\nBLOCK            mcp          external declared effects; no MCP server was invoked.\nALLOW            sql          Signed grant consumed with executed=false (simulation).\nALLOW            agent        Signed grant consumed with executed=false (simulation).\nALLOW            agent        Whole-agent process-tree grant simulated; no agent or kernel sandbox launched.\nAudit: verified. Cleanup: temporary daemon, keys, state and files removed.\n",
+    "stderr": ""
+  },
+  {
+    "command": "<checkout>/.local/adoption/fresh-runtime/bin/python -BIS bin/kechaa demo --scenario approval --json",
+    "exit_code": 0,
+    "seconds": 0.281,
+    "stdout": "{\n  \"audit_verified\": true,\n  \"cleanup\": \"temporary daemon, keys, state and files removed\",\n  \"executed\": false,\n  \"profile\": \"diagnostic-no-execution\",\n  \"results\": [\n    {\n      \"decision\": \"PENDING_APPROVAL\",\n      \"detail\": \"No command ran. The disposable operator inspects both grant digests.\",\n      \"scenario\": \"approval\"\n    },\n    {\n      \"decision\": \"ALLOW\",\n      \"detail\": \"Signed grant consumed with executed=false (simulation).\",\n      \"scenario\": \"approval\"\n    }\n  ]\n}\n",
+    "stderr": ""
+  },
+  {
+    "command": "<checkout>/.local/adoption/fresh-runtime/bin/python -BIS bin/kechaa doctor",
+    "exit_code": 3,
+    "seconds": 0.111,
+    "stdout": "{\n  \"active_profile\": \"diagnostic-no-execution\",\n  \"architecture\": \"arm64\",\n  \"control_plane_available\": true,\n  \"execution_available\": false,\n  \"execution_verified\": false,\n  \"kernel\": \"27.0.0\",\n  \"native_profile\": \"unavailable\",\n  \"os\": \"Darwin\",\n  \"production_ready\": false,\n  \"reason\": \"Native macOS process-tree lifetime and resource enforcement are unverified. Protected execution is disabled.\",\n  \"safe_next_step\": \"Use the macOS policy/client tools with a separately administered Linux VM. No implicit host execution or remote transport is provided.\",\n  \"sandbox_exec_present\": true,\n  \"uid\": 501\n}\n",
+    "stderr": ""
+  },
+  {
+    "command": "<checkout>/.local/adoption/fresh-runtime/bin/python -BIS tools/install.py install --prefix .local/adoption/install",
+    "exit_code": 0,
+    "seconds": 0.66,
+    "stdout": "{\n  \"control_plane\": [\n    \"Linux\",\n    \"macOS\"\n  ],\n  \"os\": \"Darwin\",\n  \"production_ready\": false,\n  \"python\": \"3.14.8\",\n  \"release\": \"alpha\",\n  \"version\": \"0.2.0a1\"\n}\n{\"installed\": \"<checkout>/.local/adoption/install/bin/kechaa\", \"services_started\": false, \"path_modified\": false}\n",
+    "stderr": ""
+  },
+  {
+    "command": ".local/adoption/install/bin/kechaa demo --json",
+    "exit_code": 0,
+    "seconds": 0.297,
+    "stdout": "{\n  \"audit_verified\": true,\n  \"cleanup\": \"temporary daemon, keys, state and files removed\",\n  \"executed\": false,\n  \"profile\": \"diagnostic-no-execution\",\n  \"results\": [\n    {\n      \"decision\": \"ALLOW\",\n      \"detail\": \"Signed grant consumed with executed=false (simulation).\",\n      \"scenario\": \"allow\"\n    },\n    {\n      \"decision\": \"BLOCK\",\n      \"detail\": \"Consumed grant cannot be reused.\",\n      \"scenario\": \"replay\"\n    },\n    {\n      \"decision\": \"PENDING_APPROVAL\",\n      \"detail\": \"No command ran. The disposable operator inspects both grant digests.\",\n      \"scenario\": \"approval\"\n    },\n    {\n      \"decision\": \"ALLOW\",\n      \"detail\": \"Signed grant consumed with executed=false (simulation).\",\n      \"scenario\": \"approval\"\n    },\n    {\n      \"decision\": \"BLOCK\",\n      \"detail\": \"Policy denied the request before execution.\",\n      \"scenario\": \"destructive\"\n    },\n    {\n      \"decision\": \"BLOCK\",\n      \"detail\": \"Policy denied the request before execution.\",\n      \"scenario\": \"filesystem\"\n    },\n    {\n      \"decision\": \"ALLOW\",\n      \"detail\": \"offline declared effects; no MCP server was invoked.\",\n      \"scenario\": \"mcp\"\n    },\n    {\n      \"decision\": \"BLOCK\",\n      \"detail\": \"external declared effects; no MCP server was invoked.\",\n      \"scenario\": \"mcp\"\n    },\n    {\n      \"decision\": \"ALLOW\",\n      \"detail\": \"Signed grant consumed with executed=false (simulation).\",\n      \"scenario\": \"sql\"\n    },\n    {\n      \"decision\": \"ALLOW\",\n      \"detail\": \"Signed grant consumed with executed=false (simulation).\",\n      \"scenario\": \"agent\"\n    },\n    {\n      \"decision\": \"ALLOW\",\n      \"detail\": \"Whole-agent process-tree grant simulated; no agent or kernel sandbox launched.\",\n      \"scenario\": \"agent\"\n    }\n  ]\n}\n",
+    "stderr": ""
+  },
+  {
+    "command": "<checkout>/.local/adoption/fresh-runtime/bin/python -BIS tools/install.py verify --prefix .local/adoption/install",
+    "exit_code": 0,
+    "seconds": 0.053,
+    "stdout": "{\"verified_files\": 22, \"integrity\": \"matches local installation manifest\", \"authenticated_release\": false, \"manifest_sha256\": \"<ephemeral-grant>83a7696b5517351b\"}\n",
+    "stderr": ""
+  },
+  {
+    "command": "<checkout>/.local/adoption/fresh-runtime/bin/python -BIS tools/install.py uninstall --prefix .local/adoption/install",
+    "exit_code": 0,
+    "seconds": 0.051,
+    "stdout": "{\"removed\": \"manifest-listed program files\", \"preserved\": \"all state, policies, audit records, and unrelated files\"}\n",
+    "stderr": ""
+  },
+  {
+    "command": "<checkout>/.local/adoption/fresh-runtime/bin/python -B examples/sqlite_task.py",
+    "exit_code": 0,
+    "seconds": 0.027,
+    "stdout": "{\"rows\": [[1, \"review policy\"]], \"boundary\": \"standalone local workload; no KECHAA containment\"}\n",
+    "stderr": ""
+  },
+  {
+    "command": "<checkout>/.local/adoption/fresh-runtime/bin/python -B examples/agent_tool.py --help",
+    "exit_code": 0,
+    "seconds": 0.06,
+    "stdout": "usage: agent_tool.py [-h] --socket SOCKET --run RUN --session SESSION\n                     --cwd CWD [--simulate]\n                     ...\n\nCustom agent integration against an already administered KECHAA run. Source\ncheckout: python examples/agent_tool.py --help No automatic administrative\napproval or direct subprocess fallback.\n\npositional arguments:\n  argv\n\noptions:\n  -h, --help         show this help message and exit\n  --socket SOCKET\n  --run RUN\n  --session SESSION\n  --cwd CWD\n  --simulate         Use same-UID diagnostics; never execute\n",
+    "stderr": ""
+  }
+]

@@ -32,6 +32,9 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument("--admin-socket", default="/run/kechaa/admin.sock", help="Separate administrative Unix socket")
     sub = p.add_subparsers(dest="command", required=True)
     sub.add_parser("version", help="Version, supported platforms, and release status")
+    demo = sub.add_parser('demo', help='Disposable real Unix API walkthrough; commands are simulated, never executed')
+    demo.add_argument('--scenario', choices=('all', 'allow', 'approval', 'destructive', 'filesystem', 'mcp', 'sql', 'agent'), default='all')
+    demo.add_argument('--json', action='store_true', help='Machine-readable results')
     diag = sub.add_parser("preflight", aliases=["doctor"], help="Read-only platform capability report; never changes kernel configuration")
     diag.add_argument("--cgroup-root", default="/sys/fs/cgroup/kechaa")
     sub.add_parser("status", help="Daemon health, policy version and active profile")
@@ -227,7 +230,17 @@ def initialize_policy(root: Path) -> dict:
 
 def handle(args) -> int:
     cmd = args.command
-    if cmd == "version":
+    if cmd == 'demo':
+        from .demo import walkthrough
+        result = walkthrough(args.scenario)
+        if args.json:
+            output(result)
+        else:
+            print('KECHAA diagnostic demo — real Unix API, no command execution')
+            for row in result['results']:
+                print(f"{row['decision']:16} {row['scenario']:12} {row['detail']}")
+            print('Audit: verified. Cleanup: ' + result['cleanup'] + '.')
+    elif cmd == "version":
         output({"version": __version__, "python": platform.python_version(), "os": platform.system(),
                 "control_plane": ["Linux", "macOS"], "production_ready": False, "release": "alpha"})
     elif cmd in ("preflight", "doctor"):

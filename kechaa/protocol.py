@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ctypes
+import errno
 import os
 import platform
 import socket
@@ -43,7 +44,13 @@ def call(path: str, operation: str, data: dict | None = None, timeout: int = 15,
         if operation == "execute":
             require(uid == 0, "daemon_identity", "Protected execution requires a root-owned daemon; a same-user service cannot assert kernel containment.")
         sock.sendall(message)
-        sock.shutdown(socket.SHUT_WR)
+        try:
+            sock.shutdown(socket.SHUT_WR)
+        except OSError as exc:
+            # macOS may report an already closed peer after a complete request
+            # has been answered. Still require and validate the queued response.
+            if exc.errno != errno.ENOTCONN:
+                raise
         chunks = bytearray()
         # Execution output can be up to 4 MiB per action, encoded as base64.
         limit = 12582912

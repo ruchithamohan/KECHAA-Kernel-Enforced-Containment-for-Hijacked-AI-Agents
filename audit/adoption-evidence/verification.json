@@ -1,0 +1,56 @@
+{
+  "base_commit": "8d444b8769e80fd7da6280071fdfe66947f349a2",
+  "tests": {
+    "discovered": 52,
+    "passed": 50,
+    "skipped": 2,
+    "exit_code": 0
+  },
+  "new_test_cases": 0,
+  "docs_check": "Checked 122 local links in 36 Markdown files; 0 errors.",
+  "archive": {
+    "deterministic": true,
+    "embedded_checksums_verified": true,
+    "extracted_demo_passed": true,
+    "extracted_links_passed": true
+  },
+  "installation": {
+    "fresh_runtime": true,
+    "source_demo": true,
+    "installed_demo": true,
+    "manifest_verified": true,
+    "uninstall": true
+  },
+  "integration_manual_checks": {
+    "all_seven_scenarios": "passed",
+    "agent_adapter_allow_exit": 0,
+    "agent_adapter_pending_exit": 2,
+    "agent_adapter_block_exit": 3
+  },
+  "ci": "workflow statically checked; hosted matrix not yet observed at commit preparation",
+  "linux_enforcement": "not verified in this pass",
+  "github_metadata": "recommendations prepared; credential lacks admin permission",
+  "source_sha256": {
+    "kechaa/__init__.py": "9f8906dc427193c85fe5a937265457be52e42ac29a9cf5b07daffaa46088ccb3",
+    "kechaa/__main__.py": "65b5e2a53a73cf5c241ad0025c1f5239ec73dd95423bfac0b8440f26d75b5f9d",
+    "kechaa/backends/__init__.py": "905ee915628013c1183caaa1d9009bc9f32adf17f56f38a8aac86ac8662d0f1e",
+    "kechaa/backends/linux.py": "4e73fecee1533ca0751d32a297436e71bdc03378beba318daf60b44058ca33c1",
+    "kechaa/backends/macos.py": "09fe31d3c1c674479f755129c73530d3abe0821654932b8b023e0b7eb8b2af3d",
+    "kechaa/bootstrap.py": "cab8492c44f152182fb02419bf833b7f0cb54c9dd7bb3cbb34143e7eabde5d27",
+    "kechaa/cli.py": "0248b32fcd857cd926c160b0d6960e4b8b782e8fcf4a1cd179ed439247d78afa",
+    "kechaa/client.py": "2d9e838f5e03d2991a5eefd7e16c3458bc65678b7a1d80c9a8cfba2393220f84",
+    "kechaa/common.py": "87c7d7a4afc61a223fe169b947e906fd0bd4c4202f96a12ba73e0993e235783a",
+    "kechaa/daemon.py": "107606a60dae2803deb52f06dc8635677dea678311a6576b44090e63782818e2",
+    "kechaa/demo.py": "385d994852cbb3d282df81c5440f7aec325c1fa01618a09ba378cc6ed6f4a718",
+    "kechaa/effects.py": "17dc7c73b545e655180c9783f08ebbb07ba6677f5be92bb89dd5ac44e9b530a1",
+    "kechaa/engine.py": "3c3756b7fe27db3d6dee7a665721a79b7a4b85b1e57711600c4eeb0eb64c8f8e",
+    "kechaa/evidence.py": "73c1f6c1740616b9a2c4bfdef8a7e71328efbdfbbe93bc274179bf0149ad0bd2",
+    "kechaa/harness.py": "b5bd5e8043955f86b0e7a275adb0479af6b23e5faa3ba3bac8fe402bcb2660f7",
+    "kechaa/policy.py": "92ddb523e5f4526dc21eefa20b3b5731b893f9ff70b7bc43e9b1a34a92a12648",
+    "kechaa/protocol.py": "accc712fc8f83bf7be977d918da441c434fcce8955bbc83d4c7a6953c90fd53d",
+    "kechaa/recovery.py": "3b81816217b15468ec211c0214d68782fc2a5170de8723a10ee85a04f0f8ccb4",
+    "kechaa/schema.py": "6e4ba985bcd8fa84fbbe050eec9a8e1b5593f528ae32078453eb9690e953c9d7",
+    "kechaa/store.py": "0c43e140ec7d6217a68d2246e3ac9f969c519866657c10556fa7c4cf67fd3f8c",
+    "kechaa/worker.py": "0e955511900d31c138b44eddeff9c9d298dd7aa1e9af9cd94430874e3033e4a4"
+  }
+}
