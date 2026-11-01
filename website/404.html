@@ -118,87 +118,105 @@
       <div class="container">
         <div class="section-heading"><span class="section-kicker">Architecture</span><h2>Policy, history and enforcement in one agent security loop.</h2></div>
         <div class="diagram-shell">
-          <svg class="architecture-svg" viewBox="0 0 1120 620" role="img" aria-labelledby="arch-title arch-desc">
+          <svg class="architecture-svg" viewBox="0 0 1180 680" role="img" aria-labelledby="arch-title arch-desc">
             <title id="arch-title">KECHAA architecture diagram</title>
-            <desc id="arch-desc">AI agent requests flow through task contracts, signed grants, history-aware policy, supervised execution and audit evidence.</desc>
+            <desc id="arch-desc">AI agent requests flow through task contracts, signed grants, tool effect contracts, history-aware policy, supervised execution and audit evidence.</desc>
             <defs>
               <marker id="arrow-signal" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L11 6 L1 11 Z" fill="#F15A38"/></marker>
               <marker id="arrow-ink" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L11 6 L1 11 Z" fill="#1C1B1A"/></marker>
-              <linearGradient id="hazard-signal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F15A38"/><stop offset="1" stop-color="#F6B18E"/></linearGradient>
-              <linearGradient id="hazard-panel" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FAF7F3"/><stop offset="1" stop-color="#E9E2D9"/></linearGradient>
-              <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="18" stdDeviation="16" flood-color="#000" flood-opacity="0.28"/></filter>
-              <filter id="signal-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+              <linearGradient id="card-warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFFDFC"/><stop offset="1" stop-color="#E9E2D9"/></linearGradient>
+              <linearGradient id="signal-gradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F15A38"/><stop offset="1" stop-color="#F6B18E"/></linearGradient>
+              <linearGradient id="mesh" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F15A38" stop-opacity="0.20"/><stop offset="1" stop-color="#1C1B1A" stop-opacity="0.04"/></linearGradient>
+              <pattern id="diagram-grid" width="36" height="36" patternUnits="userSpaceOnUse"><path d="M36 0H0V36" fill="none" stroke="#1C1B1A" stroke-opacity="0.055" stroke-width="1"/></pattern>
+              <filter id="diagram-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="20" stdDeviation="16" flood-color="#1C1B1A" flood-opacity="0.18"/></filter>
+              <filter id="diagram-glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
             </defs>
 
-            <rect x="12" y="12" width="1096" height="596" rx="34" fill="#FAF7F3" stroke="#E9E2D9"/>
-            <rect x="12" y="410" width="1096" height="198" rx="0" fill="#1C1B1A"/>
-            <rect x="48" y="46" width="1024" height="60" rx="30" fill="#E9E2D9"/>
-            <rect x="48" y="46" width="270" height="60" rx="30" fill="#1C1B1A"/>
-            <rect x="318" y="46" width="265" height="60" fill="#F15A38"/>
-            <rect x="583" y="46" width="270" height="60" fill="#F6B18E"/>
-            <circle cx="1056" cy="76" r="8" fill="#F15A38"/>
-            <text x="48" y="151" fill="#1C1B1A" font-size="22" font-weight="800" letter-spacing="2">KECHAA CONTROL LOOP</text>
-            <text x="48" y="185" fill="#6D675F" font-size="15">Discover. Authorize. Contain. Prove.</text>
+            <rect x="10" y="10" width="1160" height="660" rx="38" fill="#FAF7F3" stroke="#E9E2D9"/>
+            <rect x="10" y="10" width="1160" height="660" rx="38" fill="url(#diagram-grid)"/>
+            <path d="M52 106H520C654 106 654 44 790 44H1126" stroke="#E9E2D9" stroke-width="34" stroke-linecap="round" opacity="0.95"/>
+            <path d="M52 106H305" stroke="#1C1B1A" stroke-width="34" stroke-linecap="round"/>
+            <path d="M305 106H520" stroke="#F15A38" stroke-width="34"/>
+            <path d="M520 106H742" stroke="#F6B18E" stroke-width="34"/>
+            <text x="58" y="72" fill="#1C1B1A" font-size="34" font-weight="900" letter-spacing="-1.5">KECHAA execution boundary</text>
+            <text x="58" y="148" fill="#6D675F" font-size="15" font-weight="700" letter-spacing="1.5">TASK CONTRACTS × SIGNED GRANTS × TRUSTED HISTORY × SUPERVISED EXECUTION</text>
+            <text x="1088" y="112" text-anchor="end" fill="#F15A38" font-size="14" font-weight="900">CONTROL LOOP</text>
 
-            <g filter="url(#soft-shadow)">
-              <rect x="70" y="245" width="175" height="112" rx="28" fill="#1C1B1A"/>
-              <text x="158" y="292" text-anchor="middle" fill="#FAF7F3" font-size="20" font-weight="800">AI Agent</text>
-              <text x="158" y="322" text-anchor="middle" fill="#BDB5AC" font-size="13">shell • tool • API</text>
+            <g filter="url(#diagram-shadow)">
+              <rect x="58" y="248" width="178" height="126" rx="28" fill="#1C1B1A"/>
+              <circle cx="100" cy="290" r="18" fill="#F15A38"/>
+              <text x="147" y="292" fill="#FAF7F3" font-size="21" font-weight="900">AI Agent</text>
+              <text x="147" y="322" fill="#BDB5AC" font-size="13">shell • tool • API</text>
+              <text x="147" y="346" fill="#F6B18E" font-size="12" font-weight="700">untrusted caller</text>
             </g>
 
-            <g filter="url(#soft-shadow)">
-              <rect x="320" y="174" width="190" height="104" rx="24" fill="#FAF7F3" stroke="#E9E2D9"/>
-              <rect x="320" y="174" width="16" height="104" rx="8" fill="#F15A38"/>
-              <text x="415" y="219" text-anchor="middle" fill="#1C1B1A" font-size="18" font-weight="800">Task Contract</text>
-              <text x="415" y="247" text-anchor="middle" fill="#6D675F" font-size="13">scope • roots • lifetime</text>
+            <g filter="url(#diagram-shadow)">
+              <rect x="320" y="188" width="204" height="110" rx="26" fill="url(#card-warm)" stroke="#E9E2D9"/>
+              <rect x="320" y="188" width="20" height="110" rx="10" fill="#F15A38"/>
+              <text x="422" y="236" text-anchor="middle" fill="#1C1B1A" font-size="19" font-weight="900">Task Contract</text>
+              <text x="422" y="264" text-anchor="middle" fill="#6D675F" font-size="13">roots • executable scope</text>
             </g>
 
-            <g filter="url(#soft-shadow)">
-              <rect x="320" y="326" width="190" height="104" rx="24" fill="#FAF7F3" stroke="#E9E2D9"/>
-              <rect x="320" y="326" width="16" height="104" rx="8" fill="#F6B18E"/>
-              <text x="415" y="371" text-anchor="middle" fill="#1C1B1A" font-size="18" font-weight="800">Signed Grant</text>
-              <text x="415" y="399" text-anchor="middle" fill="#6D675F" font-size="13">single-use envelope</text>
+            <g filter="url(#diagram-shadow)">
+              <rect x="320" y="360" width="204" height="110" rx="26" fill="url(#card-warm)" stroke="#E9E2D9"/>
+              <rect x="320" y="360" width="20" height="110" rx="10" fill="#F6B18E"/>
+              <text x="422" y="408" text-anchor="middle" fill="#1C1B1A" font-size="19" font-weight="900">Signed Grant</text>
+              <text x="422" y="436" text-anchor="middle" fill="#6D675F" font-size="13">single-use action envelope</text>
             </g>
 
-            <g filter="url(#soft-shadow)">
-              <rect x="595" y="116" width="200" height="104" rx="24" fill="#1C1B1A"/>
-              <text x="695" y="160" text-anchor="middle" fill="#FAF7F3" font-size="18" font-weight="800">Tool Gateway</text>
-              <text x="695" y="188" text-anchor="middle" fill="#F6B18E" font-size="13">effect contracts</text>
+            <g filter="url(#diagram-shadow)">
+              <rect x="596" y="128" width="210" height="112" rx="28" fill="#1C1B1A"/>
+              <path d="M628 205H774" stroke="#F15A38" stroke-width="8" stroke-linecap="round"/>
+              <text x="701" y="176" text-anchor="middle" fill="#FAF7F3" font-size="19" font-weight="900">Tool Gateway</text>
+              <text x="701" y="212" text-anchor="middle" fill="#F6B18E" font-size="13">MCP-style effect contracts</text>
             </g>
 
-            <g filter="url(#soft-shadow)">
-              <rect x="595" y="274" width="200" height="122" rx="26" fill="url(#hazard-signal)"/>
-              <text x="695" y="324" text-anchor="middle" fill="#1C1B1A" font-size="20" font-weight="900">Policy Engine</text>
-              <text x="695" y="354" text-anchor="middle" fill="#1C1B1A" font-size="13" font-weight="700">history-aware decision</text>
+            <g filter="url(#diagram-shadow)">
+              <rect x="596" y="308" width="210" height="142" rx="30" fill="url(#signal-gradient)"/>
+              <circle cx="641" cy="354" r="20" fill="#1C1B1A" opacity="0.9"/>
+              <text x="701" y="358" text-anchor="middle" fill="#1C1B1A" font-size="22" font-weight="950">Policy Engine</text>
+              <text x="701" y="390" text-anchor="middle" fill="#1C1B1A" font-size="13" font-weight="800">current action + execution history</text>
+              <text x="701" y="418" text-anchor="middle" fill="#1C1B1A" font-size="12" font-weight="700" opacity="0.74">leases • posture • prior denials</text>
             </g>
 
-            <g filter="url(#soft-shadow)">
-              <rect x="870" y="190" width="185" height="128" rx="28" fill="#FAF7F3" stroke="#E9E2D9"/>
-              <text x="963" y="241" text-anchor="middle" fill="#1C1B1A" font-size="20" font-weight="900">Supervisor</text>
-              <text x="963" y="271" text-anchor="middle" fill="#6D675F" font-size="13">Linux boundary</text>
+            <g filter="url(#diagram-shadow)">
+              <rect x="888" y="205" width="204" height="132" rx="30" fill="url(#card-warm)" stroke="#E9E2D9"/>
+              <rect x="922" y="236" width="136" height="12" rx="6" fill="#1C1B1A"/>
+              <rect x="922" y="262" width="92" height="12" rx="6" fill="#F15A38"/>
+              <text x="990" y="296" text-anchor="middle" fill="#1C1B1A" font-size="21" font-weight="950">Supervisor</text>
+              <text x="990" y="322" text-anchor="middle" fill="#6D675F" font-size="13">Linux execution boundary</text>
             </g>
 
-            <g filter="url(#soft-shadow)">
-              <rect x="870" y="388" width="185" height="104" rx="24" fill="#1C1B1A"/>
-              <text x="963" y="431" text-anchor="middle" fill="#FAF7F3" font-size="18" font-weight="800">Audit Store</text>
-              <text x="963" y="459" text-anchor="middle" fill="#F6B18E" font-size="13">events • anchors</text>
+            <g filter="url(#diagram-shadow)">
+              <rect x="888" y="434" width="204" height="112" rx="26" fill="#1C1B1A"/>
+              <text x="990" y="480" text-anchor="middle" fill="#FAF7F3" font-size="20" font-weight="900">Audit Store</text>
+              <text x="990" y="508" text-anchor="middle" fill="#F6B18E" font-size="13">events • anchors • evidence</text>
             </g>
 
-            <path class="flow-line signal-flow" d="M245 301 C278 301 288 226 320 226" stroke="#F15A38" stroke-width="6" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
-            <path class="flow-line signal-flow delay-1" d="M245 301 C282 301 287 378 320 378" stroke="#F15A38" stroke-width="6" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
-            <path class="flow-line" d="M510 226 C548 226 560 168 595 168" stroke="#1C1B1A" stroke-width="4" fill="none" stroke-linecap="round" marker-end="url(#arrow-ink)"/>
-            <path class="flow-line signal-flow delay-2" d="M510 378 C548 378 558 335 595 335" stroke="#F15A38" stroke-width="6" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
-            <path class="flow-line signal-flow delay-3" d="M795 335 C842 335 832 254 870 254" stroke="#F15A38" stroke-width="6" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
-            <path class="flow-line" d="M963 318 V388" stroke="#F6B18E" stroke-width="5" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
-            <path class="flow-line" d="M695 396 C730 465 826 470 870 440" stroke="#E9E2D9" stroke-width="3" fill="none" stroke-dasharray="8 10" marker-end="url(#arrow-signal)"/>
+            <path class="flow-line signal-flow" d="M236 311 C274 311 280 242 320 242" stroke="#F15A38" stroke-width="7" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
+            <path class="flow-line signal-flow delay-1" d="M236 311 C276 311 280 416 320 416" stroke="#F15A38" stroke-width="7" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
+            <path class="flow-line" d="M524 242 C560 242 558 184 596 184" stroke="#1C1B1A" stroke-width="4" fill="none" stroke-linecap="round" marker-end="url(#arrow-ink)"/>
+            <path class="flow-line signal-flow delay-2" d="M524 416 C560 416 558 379 596 379" stroke="#F15A38" stroke-width="7" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
+            <path class="flow-line signal-flow delay-3" d="M806 379 C850 379 844 271 888 271" stroke="#F15A38" stroke-width="7" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
+            <path class="flow-line" d="M990 337 V434" stroke="#F6B18E" stroke-width="6" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
+            <path class="flow-line" d="M701 450 C748 556 828 540 888 490" stroke="#1C1B1A" stroke-width="3" fill="none" stroke-dasharray="9 11" marker-end="url(#arrow-ink)"/>
 
-            <g class="diagram-legend">
-              <rect x="48" y="520" width="180" height="44" rx="22" fill="#FAF7F3" opacity="0.08"/>
-              <circle cx="72" cy="542" r="7" fill="#F15A38"/>
-              <text x="91" y="547" fill="#FAF7F3" font-size="13" font-weight="700">authorization flow</text>
-              <rect x="250" y="520" width="170" height="44" rx="22" fill="#FAF7F3" opacity="0.08"/>
-              <circle cx="274" cy="542" r="7" fill="#F6B18E"/>
-              <text x="293" y="547" fill="#FAF7F3" font-size="13" font-weight="700">audit trail</text>
+            <g filter="url(#diagram-glow)">
+              <circle cx="236" cy="311" r="5" fill="#F15A38"/>
+              <circle cx="524" cy="416" r="5" fill="#F15A38"/>
+              <circle cx="806" cy="379" r="5" fill="#F15A38"/>
+            </g>
+
+            <g>
+              <rect x="58" y="580" width="230" height="48" rx="24" fill="#1C1B1A"/>
+              <circle cx="84" cy="604" r="7" fill="#F15A38"/>
+              <text x="104" y="609" fill="#FAF7F3" font-size="13" font-weight="800">authorization flow</text>
+              <rect x="308" y="580" width="190" height="48" rx="24" fill="#E9E2D9"/>
+              <circle cx="334" cy="604" r="7" fill="#F6B18E"/>
+              <text x="354" y="609" fill="#1C1B1A" font-size="13" font-weight="800">audit trail</text>
+              <rect x="518" y="580" width="250" height="48" rx="24" fill="#FFFDFC" stroke="#E9E2D9"/>
+              <circle cx="544" cy="604" r="7" fill="#1C1B1A"/>
+              <text x="564" y="609" fill="#1C1B1A" font-size="13" font-weight="800">trusted control plane</text>
             </g>
           </svg>
         </div>
