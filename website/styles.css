@@ -166,7 +166,7 @@ h3 { font-size: 1.28rem; letter-spacing: -0.035em; line-height: 1.12; }
 }
 .orbital-card::before { content: ""; position: absolute; inset: -30%; background: conic-gradient(from 120deg, transparent, rgba(78,227,255,0.18), transparent, rgba(157,124,255,0.16), transparent); animation: spin 12s linear infinite; }
 .orbital-card > * { position: absolute; z-index: 1; }
-.agent-node, .resource-node, .status-chip {
+.agent-node, .resource-node, .boundary-chip {
   border: 1px solid rgba(255,255,255,0.13);
   border-radius: 999px;
   padding: 12px 16px;
@@ -179,7 +179,7 @@ h3 { font-size: 1.28rem; letter-spacing: -0.035em; line-height: 1.12; }
 .resource-a { left: 30px; top: 48%; }
 .resource-b { right: 35px; top: 44%; }
 .resource-c { left: 50%; bottom: 56px; transform: translateX(-50%); }
-.status-chip { bottom: 18px; right: 18px; color: var(--green); font-size: .82rem; }
+.boundary-chip { bottom: 18px; right: 18px; color: var(--green); font-size: .82rem; }
 .boundary-ring { inset: 94px; border-radius: 999px; border: 1px dashed rgba(78,227,255,0.4); box-shadow: inset 0 0 34px rgba(78,227,255,0.08); }
 .policy-core { inset: 155px; display: grid; place-items: center; text-align: center; border-radius: 50%; background: radial-gradient(circle, rgba(78,227,255,0.22), rgba(91,140,255,0.1)); border: 1px solid rgba(78,227,255,0.38); }
 .policy-core span, .policy-core small { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .13em; }
@@ -187,9 +187,9 @@ h3 { font-size: 1.28rem; letter-spacing: -0.035em; line-height: 1.12; }
 
 .two-column { display: grid; grid-template-columns: 0.38fr 1fr; gap: 64px; align-items: start; }
 .align-start { align-items: start; }
-.problem, .offerings, .use-cases, .security-status { background: rgba(255,255,255,0.014); }
+.problem, .offerings, .use-cases { background: rgba(255,255,255,0.014); }
 .risk-grid, .offering-grid, .use-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 30px; }
-.risk-grid article, .feature-card, .use-grid article, .docs-list a, .status-card, .demo-panel, .code-card, .lifecycle, .diagram-shell {
+.risk-grid article, .feature-card, .use-grid article, .docs-list a, .evidence-card, .demo-panel, .code-card, .lifecycle, .diagram-shell {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: linear-gradient(145deg, rgba(14, 27, 49, 0.78), rgba(8, 17, 31, 0.62));
@@ -217,8 +217,8 @@ h3 { font-size: 1.28rem; letter-spacing: -0.035em; line-height: 1.12; }
 .feature-card { min-height: 284px; position: relative; overflow: hidden; }
 .feature-card::before { content: attr(data-index); position: absolute; right: 18px; top: 12px; color: rgba(255,255,255,0.08); font-size: 4rem; font-weight: 900; letter-spacing: -0.08em; }
 .feature-icon { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 16px; background: rgba(78,227,255,0.12); border: 1px solid rgba(78,227,255,0.22); color: var(--cyan); font-size: 1.35rem; margin-bottom: 22px; }
-.feature-card ul, .status-card ul { padding-left: 18px; color: var(--muted); line-height: 1.75; }
-.feature-card li::marker, .status-card li::marker { color: var(--cyan); }
+.feature-card ul, .evidence-card ul { padding-left: 18px; color: var(--muted); line-height: 1.75; }
+.feature-card li::marker, .evidence-card li::marker { color: var(--cyan); }
 
 .lifecycle { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; padding: 18px; margin-top: 36px; }
 .lifecycle-step { position: relative; min-height: 150px; padding: 18px 14px; border-radius: 18px; background: rgba(255,255,255,0.035); border: 1px solid var(--line); }
@@ -255,14 +255,14 @@ h3 { font-size: 1.28rem; letter-spacing: -0.035em; line-height: 1.12; }
 .docs-list span { font-weight: 900; }
 .docs-list small { color: var(--muted); text-align: right; }
 
-.status-table { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: rgba(9,18,32,0.68); }
-.status-table [role="row"] { display: grid; grid-template-columns: 0.9fr 0.82fr 1.45fr; gap: 18px; padding: 17px 20px; border-bottom: 1px solid var(--line); align-items: center; color: var(--muted); }
-.status-table [role="row"]:last-child { border-bottom: 0; }
-.status-table .status-head { color: var(--text); font-weight: 900; background: rgba(255,255,255,0.045); }
+.integration-table { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: rgba(9,18,32,0.68); }
+.integration-table [role="row"] { display: grid; grid-template-columns: 0.9fr 0.82fr 1.45fr; gap: 18px; padding: 17px 20px; border-bottom: 1px solid var(--line); align-items: center; color: var(--muted); }
+.integration-table [role="row"]:last-child { border-bottom: 0; }
+.integration-table .integration-head { color: var(--text); font-weight: 900; background: rgba(255,255,255,0.045); }
 .ok { color: var(--green); }
 .warn { color: var(--amber); }
 
-.status-card { display: grid; grid-template-columns: 1fr .9fr; gap: 40px; padding: 34px; }
+.evidence-card { display: grid; grid-template-columns: 1fr .9fr; gap: 40px; padding: 34px; }
 .cta-card { text-align: center; padding: 64px; border-radius: 34px; border: 1px solid rgba(78,227,255,0.24); background: radial-gradient(circle at 50% 0%, rgba(78,227,255,0.16), transparent 46%), linear-gradient(135deg, rgba(17,30,53,.85), rgba(8,17,31,.72)); }
 .cta-card p { margin-inline: auto; max-width: 760px; }
 
@@ -284,7 +284,7 @@ details p { margin-bottom: 0; font-size: .95rem; }
 @keyframes spin { to { transform: rotate(1turn); } }
 
 @media (max-width: 1000px) {
-  .hero-grid, .two-column, .demo-grid, .status-card { grid-template-columns: 1fr; }
+  .hero-grid, .two-column, .demo-grid, .evidence-card { grid-template-columns: 1fr; }
   .hero { padding-top: 60px; }
   .hero-visual { min-height: 460px; }
   .offering-grid, .faq-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -309,8 +309,8 @@ details p { margin-bottom: 0; font-size: .95rem; }
   .orbital-card { border-radius: 30px; }
   .policy-core { inset: 128px; }
   .boundary-ring { inset: 78px; }
-  .agent-node, .resource-node, .status-chip { font-size: .82rem; padding: 9px 12px; }
-  .status-table [role="row"] { grid-template-columns: 1fr; gap: 8px; }
+  .agent-node, .resource-node, .boundary-chip { font-size: .82rem; padding: 9px 12px; }
+  .integration-table [role="row"] { grid-template-columns: 1fr; gap: 8px; }
   .cta-card { padding: 36px 20px; }
 }
 
