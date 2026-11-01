@@ -4,21 +4,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>KECHAA — Kernel-Enforced Containment for Hijacked AI Agents</title>
-  <meta name="description" content="KECHAA governs autonomous AI agent execution with signed grants, task contracts, execution history, policy decisions, audit evidence and Linux containment architecture." />
-  <meta name="theme-color" content="#07111f" />
+  <meta name="description" content="KECHAA governs autonomous AI agent execution with task contracts, signed grants, history-aware policy, supervised execution and tamper-evident audit records." />
+  <meta name="theme-color" content="#FAF7F3" />
   <meta property="og:title" content="KECHAA — Your AI agents. Your rules. Your security boundary." />
-  <meta property="og:description" content="A security architecture for controlling autonomous AI agent execution through trusted authorization, history-aware policy and operating-system containment." />
+  <meta property="og:description" content="KECHAA governs agent actions through task contracts, signed grants, trusted history, policy decisions, supervised execution and audit evidence." />
   <meta property="og:type" content="website" />
-  <link rel="stylesheet" href="./styles.css?v=20261102-light-hazard" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css?v=hazard-final-local-7" />
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="site-header" data-elevated="false">
+  <header class="topbar" data-elevated="false">
     <nav class="nav" aria-label="Primary navigation">
-      <a class="brand" href="#top" aria-label="KECHAA home">
-        <span class="brand-mark" aria-hidden="true">K</span>
-        <span>KECHAA</span>
-      </a>
+      <a class="brand" href="#top" aria-label="KECHAA home"><span>K</span><strong>KECHAA</strong></a>
       <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links">Menu</button>
       <div class="nav-links" id="nav-links">
         <a href="#approach">Approach</a>
@@ -32,275 +32,251 @@
   </header>
 
   <main id="main">
-    <section class="hero section" id="top">
-      <div class="hero-grid container">
+    <section class="hero" id="top">
+      <div class="hero-rule" aria-hidden="true"></div>
+      <div class="container hero-layout">
         <div class="hero-copy reveal">
-          <div class="eyebrow">Autonomous agent execution security</div>
+          <p class="eyebrow">Autonomous agent execution security</p>
           <h1>Your AI agents. Your rules. Your security boundary.</h1>
-          <p class="hero-lede">KECHAA governs autonomous AI agent execution with signed grants, task contracts, trusted execution history, policy decisions, audit evidence and Linux containment architecture.</p>
-          <div class="hero-actions" aria-label="Primary actions">
-            <a class="button button-primary" href="#capabilities">Explore Capabilities</a>
-            <a class="button button-ghost" href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents">View GitHub</a>
-          </div>
-          <dl class="hero-stats" aria-label="Product capability snapshot">
-            <div><dt>01</dt><dd>Signed single-use grants bind approval to exact actions</dd></div>
-            <div><dt>02</dt><dd>History-aware policy evaluates behavior in context</dd></div>
-            <div><dt>03</dt><dd>Audit anchoring preserves security evidence</dd></div>
-          </dl>
-        </div>
-        <div class="hero-visual reveal" aria-label="KECHAA authorization boundary visual">
-          <div class="orbital-card">
-            <div class="agent-node">AI Agent</div>
-            <div class="boundary-ring" aria-hidden="true"></div>
-            <div class="policy-core">
-              <span>KECHAA</span>
-              <strong>Policy Core</strong>
-              <small>Grant • History • Boundary</small>
-            </div>
-            <div class="resource-node resource-a">Files</div>
-            <div class="resource-node resource-b">Tools</div>
-            <div class="resource-node resource-c">Network</div>
-            <div class="boundary-chip">Deny-by-default</div>
+          <p class="hero-text">KECHAA puts a trusted local control plane between autonomous agents and real system effects: task contracts, signed single-use grants, history-aware authorization, supervised execution and tamper-evident audit records.</p>
+          <div class="hero-actions">
+            <a class="button primary" href="#architecture">Explore the architecture</a>
+            <a class="button secondary" href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents">View repository</a>
           </div>
         </div>
+        <aside class="hero-console reveal" aria-label="KECHAA security flow preview">
+          <div class="console-top"><span></span><span></span><span></span><code>kechaa.control</code></div>
+          <div class="console-grid">
+            <div><small>contract</small><strong>roots + executables</strong></div>
+            <div><small>grant</small><strong>signed / single use</strong></div>
+            <div><small>history</small><strong>denials + posture</strong></div>
+            <div><small>boundary</small><strong>supervised worker</strong></div>
+          </div>
+          <div class="console-signal"><i></i><i></i><i></i></div>
+          <p>Agent intent becomes an explicit effect envelope before execution.</p>
+        </aside>
       </div>
     </section>
 
-    <section class="section problem" id="approach">
-      <div class="container two-column">
-        <div class="section-kicker">The KECHAA approach</div>
+    <section class="section approach" id="approach">
+      <div class="container split">
         <div>
-          <h2>Put an independent control layer between agents and impact.</h2>
-          <p>Autonomous agents operate across shells, files, tools and APIs. KECHAA adds a trusted execution layer that defines what an agent is authorized to do, records what it has done and evaluates each request against the active task boundary.</p>
-          <div class="risk-grid">
-            <article><span>01</span><h3>Define the task</h3><p>Task contracts describe roots, executable scope, write access and execution lifetime.</p></article>
-            <article><span>02</span><h3>Bind the approval</h3><p>Signed grants are single-use and tied to command, cwd, session, policy and effect envelope.</p></article>
-            <article><span>03</span><h3>Evaluate the sequence</h3><p>Prior denials, tool effects, posture and history influence subsequent decisions.</p></article>
-            <article><span>04</span><h3>Record the evidence</h3><p>Security events, history records and audit anchors make decisions reviewable.</p></article>
+          <p class="kicker">The approach</p>
+          <h2>Authority lives outside the agent.</h2>
+        </div>
+        <div class="editorial-copy">
+          <p>KECHAA treats an agent action as a security decision, not just a command string. The daemon verifies identity, task scope, policy, action inputs, grant state, runtime posture and previous behavior before a request moves forward.</p>
+          <div class="principles">
+            <article><span>01</span><h3>Declare the work</h3><p>Open a run with a task contract covering roots, executables, write mode and lifetime.</p></article>
+            <article><span>02</span><h3>Bind the action</h3><p>Prepare a signed single-use grant bound to argv, cwd, UID, session, policy and declared effects.</p></article>
+            <article><span>03</span><h3>Remember the path</h3><p>History, denials, tool requests, posture and leases influence later decisions.</p></article>
+            <article><span>04</span><h3>Preserve evidence</h3><p>Audit records, checkpoints and anchors make the control path inspectable.</p></article>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section offerings" id="capabilities">
+    <section class="section capabilities" id="capabilities">
       <div class="container">
-        <div class="section-heading">
-          <span class="section-kicker">Core capabilities</span>
-          <h2>Purpose-built controls for agent execution.</h2>
+        <div class="section-head">
+          <p class="kicker">Capabilities</p>
+          <h2>A control plane built for agent side effects.</h2>
         </div>
-        <div class="offering-grid">
-          <article class="feature-card" data-index="01"><div class="feature-icon">⌁</div><h3>Trusted Authorization</h3><p>Signed, single-use authorization grants bind approval to exact execution context.</p><ul><li>Grant signatures</li><li>Replay resistance</li><li>Action and policy binding</li></ul></article>
-          <article class="feature-card" data-index="02"><div class="feature-icon">◇</div><h3>Task-Bound Execution</h3><p>Contracts define what an agent session can touch, run and modify.</p><ul><li>Scoped roots</li><li>Executable allowlists</li><li>Session lifetime</li></ul></article>
-          <article class="feature-card" data-index="03"><div class="feature-icon">⟲</div><h3>History-Aware Policy</h3><p>Authorization accounts for the current action and the execution path that led to it.</p><ul><li>Persistent history</li><li>Repeated-denial handling</li><li>Posture-aware decisions</li></ul></article>
-          <article class="feature-card" data-index="04"><div class="feature-icon">⬡</div><h3>Agent Containment</h3><p>Supervised launch metadata connects policy decisions to Linux containment primitives.</p><ul><li>Process-tree model</li><li>Filesystem boundary design</li><li>Offline network profile</li></ul></article>
-          <article class="feature-card" data-index="05"><div class="feature-icon">✦</div><h3>Quarantine and Recovery</h3><p>Trusted events can change posture, revoke grants and guide administrative recovery.</p><ul><li>Quarantine workflow</li><li>Lease renewal</li><li>Recovery controls</li></ul></article>
-          <article class="feature-card" data-index="06"><div class="feature-icon">☍</div><h3>Tool Ecosystem Security</h3><p>MCP-style tool requests declare effects for policy evaluation before execution.</p><ul><li>Effect contracts</li><li>Tool request history</li><li>External-effect controls</li></ul></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section how" id="how">
-      <div class="container">
-        <div class="section-heading"><span class="section-kicker">How it works</span><h2>A complete decision lifecycle for agent actions.</h2></div>
-        <div class="lifecycle">
-          <div class="lifecycle-step"><span>1</span><h3>Contract</h3><p>Administrator confirms task scope and session identity.</p></div>
-          <div class="lifecycle-step"><span>2</span><h3>Grant</h3><p>KECHAA signs a single-use authorization envelope.</p></div>
-          <div class="lifecycle-step"><span>3</span><h3>Request</h3><p>Agent action arrives with command, cwd and declared effects.</p></div>
-          <div class="lifecycle-step"><span>4</span><h3>History</h3><p>Prior behavior and posture become part of the decision.</p></div>
-          <div class="lifecycle-step"><span>5</span><h3>Policy</h3><p>Rules evaluate scope, tools, leases and risk signals.</p></div>
-          <div class="lifecycle-step"><span>6</span><h3>Boundary</h3><p>Authorized work runs through the supervised execution path.</p></div>
-          <div class="lifecycle-step"><span>7</span><h3>Audit</h3><p>Events and anchors preserve what happened and why.</p></div>
+        <div class="capability-marquee">
+          <article><code>01</code><h3>Task contracts</h3><p>Administrator-confirmed boundaries for roots, executables, write mode and session lifetime.</p></article>
+          <article><code>02</code><h3>Signed grants</h3><p>Ed25519 approval envelopes that bind one action to one policy context.</p></article>
+          <article><code>03</code><h3>History-aware policy</h3><p>Previous denials, trusted events, tool requests and run posture shape the next authorization decision.</p></article>
+          <article><code>04</code><h3>Supervised execution</h3><p>The daemon hands approved actions to a worker that installs Linux process and filesystem controls.</p></article>
+          <article><code>05</code><h3>Quarantine + recovery</h3><p>Trusted signals change posture, revoke outstanding grants and route recovery through administrator action.</p></article>
+          <article><code>06</code><h3>Tool effect contracts</h3><p>MCP-style and file-effect requests declare read, write and network effects before approval.</p></article>
         </div>
       </div>
     </section>
 
     <section class="section architecture" id="architecture">
-      <div class="container">
-        <div class="section-heading"><span class="section-kicker">Architecture</span><h2>Policy, history and enforcement in one agent security loop.</h2></div>
-        <div class="diagram-shell">
-          <svg class="architecture-svg" viewBox="0 0 1180 680" role="img" aria-labelledby="arch-title arch-desc">
-            <title id="arch-title">KECHAA architecture diagram</title>
-            <desc id="arch-desc">AI agent requests flow through task contracts, signed grants, tool effect contracts, history-aware policy, supervised execution and audit evidence.</desc>
-            <defs>
-              <marker id="arrow-signal" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L11 6 L1 11 Z" fill="#F15A38"/></marker>
-              <marker id="arrow-ink" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="7" markerHeight="7" orient="auto"><path d="M1 1 L11 6 L1 11 Z" fill="#1C1B1A"/></marker>
-              <linearGradient id="card-warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#FFFDFC"/><stop offset="1" stop-color="#E9E2D9"/></linearGradient>
-              <linearGradient id="signal-gradient" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F15A38"/><stop offset="1" stop-color="#F6B18E"/></linearGradient>
-              <linearGradient id="mesh" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F15A38" stop-opacity="0.20"/><stop offset="1" stop-color="#1C1B1A" stop-opacity="0.04"/></linearGradient>
-              <pattern id="diagram-grid" width="36" height="36" patternUnits="userSpaceOnUse"><path d="M36 0H0V36" fill="none" stroke="#1C1B1A" stroke-opacity="0.055" stroke-width="1"/></pattern>
-              <filter id="diagram-shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="20" stdDeviation="16" flood-color="#1C1B1A" flood-opacity="0.18"/></filter>
-              <filter id="diagram-glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3.5" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-            </defs>
+      <div class="container architecture-shell">
+        <div class="architecture-header">
+          <div>
+            <p class="kicker">Interactive architecture</p>
+            <h2>The current KECHAA runtime map.</h2>
+          </div>
+          <div class="diagram-controls" aria-label="Diagram controls">
+            <button type="button" data-zoom="in" aria-label="Zoom architecture map in">Zoom +</button>
+            <button type="button" data-zoom="out" aria-label="Zoom architecture map out">Zoom −</button>
+            <button type="button" data-zoom="reset" aria-label="Reset architecture map position">Reset</button>
+          </div>
+        </div>
+        <div class="architecture-grid">
+          <div class="map-stage">
+            <svg id="architecture-map" class="architecture-map" viewBox="0 0 1280 780" role="img" aria-label="KECHAA implementation architecture: CLI and tool requests enter the daemon, the authority engine checks policy and state, and approved actions move through the supervised worker boundary.">
+              <defs>
+                <marker id="arrow" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L11 6 L1 11 Z" fill="#F15A38"/></marker>
+                <marker id="arrow-ink" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto"><path d="M1 1 L11 6 L1 11 Z" fill="#1C1B1A"/></marker>
+                <pattern id="map-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#1C1B1A" stroke-opacity="0.045"/></pattern>
+                <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="10" dy="10" stdDeviation="0" flood-color="#E9E2D9" flood-opacity="0.95"/></filter>
+              </defs>
+              <rect width="1280" height="780" rx="30" fill="#FAF7F3"/>
+              <rect width="1280" height="780" rx="30" fill="url(#map-grid)"/>
+              <g id="map-transform">
+                <g class="layer-band" transform="translate(44 70)"><rect width="232" height="640" rx="28"/><text x="24" y="40">Entry + adapters</text></g>
+                <g class="layer-band" transform="translate(322 70)"><rect width="316" height="640" rx="28"/><text x="24" y="40">Local control plane</text></g>
+                <g class="layer-band" transform="translate(684 70)"><rect width="252" height="640" rx="28"/><text x="24" y="40">State + evidence</text></g>
+                <g class="layer-band" transform="translate(982 70)"><rect width="254" height="640" rx="28"/><text x="24" y="40">Execution boundary</text></g>
 
-            <rect x="10" y="10" width="1160" height="660" rx="38" fill="#FAF7F3" stroke="#E9E2D9"/>
-            <rect x="10" y="10" width="1160" height="660" rx="38" fill="url(#diagram-grid)"/>
-            <path d="M52 106H520C654 106 654 44 790 44H1126" stroke="#E9E2D9" stroke-width="34" stroke-linecap="round" opacity="0.95"/>
-            <path d="M52 106H305" stroke="#1C1B1A" stroke-width="34" stroke-linecap="round"/>
-            <path d="M305 106H520" stroke="#F15A38" stroke-width="34"/>
-            <path d="M520 106H742" stroke="#F6B18E" stroke-width="34"/>
-            <text x="58" y="72" fill="#1C1B1A" font-size="34" font-weight="900" letter-spacing="-1.5">KECHAA execution boundary</text>
-            <text x="58" y="148" fill="#6D675F" font-size="15" font-weight="700" letter-spacing="1.5">TASK CONTRACTS × SIGNED GRANTS × TRUSTED HISTORY × SUPERVISED EXECUTION</text>
-            <text x="1088" y="112" text-anchor="end" fill="#F15A38" font-size="14" font-weight="900">CONTROL LOOP</text>
+                <path class="edge active" d="M244 172 H350" marker-end="url(#arrow)"/>
+                <text class="flow-label" x="258" y="158">local API</text>
+                <path class="edge active delay-a" d="M244 332 C286 332 292 238 350 238" marker-end="url(#arrow)"/>
+                <text class="flow-label" x="258" y="318">tool check</text>
+                <path class="edge active delay-b" d="M244 518 C296 518 296 294 350 294" marker-end="url(#arrow)"/>
+                <text class="flow-label" x="258" y="504">admin command</text>
 
-            <g filter="url(#diagram-shadow)">
-              <rect x="58" y="248" width="178" height="126" rx="28" fill="#1C1B1A"/>
-              <circle cx="100" cy="290" r="18" fill="#F15A38"/>
-              <text x="147" y="292" fill="#FAF7F3" font-size="21" font-weight="900">AI Agent</text>
-              <text x="147" y="322" fill="#BDB5AC" font-size="13">shell • tool • API</text>
-              <text x="147" y="346" fill="#F6B18E" font-size="12" font-weight="700">untrusted caller</text>
-            </g>
+                <path class="edge active" d="M506 236 V348" marker-end="url(#arrow)"/>
+                <text class="flow-label" x="520" y="292">dispatch</text>
+                <path class="edge active delay-c" d="M454 510 V472" marker-end="url(#arrow)"/>
+                <text class="flow-label" x="368" y="498">rules + effects</text>
 
-            <g filter="url(#diagram-shadow)">
-              <rect x="320" y="188" width="204" height="110" rx="26" fill="url(#card-warm)" stroke="#E9E2D9"/>
-              <rect x="320" y="188" width="20" height="110" rx="10" fill="#F15A38"/>
-              <text x="422" y="236" text-anchor="middle" fill="#1C1B1A" font-size="19" font-weight="900">Task Contract</text>
-              <text x="422" y="264" text-anchor="middle" fill="#6D675F" font-size="13">roots • executable scope</text>
-            </g>
+                <path class="edge" d="M582 374 C640 374 642 178 708 178" marker-end="url(#arrow-ink)"/>
+                <text class="flow-label dark" x="602" y="276">run state</text>
+                <path class="edge active delay-d" d="M582 402 H708" marker-end="url(#arrow)"/>
+                <text class="flow-label" x="606" y="386">history context</text>
+                <path class="edge audit" d="M582 432 C636 432 648 564 708 564" marker-end="url(#arrow-ink)"/>
+                <text class="flow-label dark" x="610" y="516">audit event</text>
 
-            <g filter="url(#diagram-shadow)">
-              <rect x="320" y="360" width="204" height="110" rx="26" fill="url(#card-warm)" stroke="#E9E2D9"/>
-              <rect x="320" y="360" width="20" height="110" rx="10" fill="#F6B18E"/>
-              <text x="422" y="408" text-anchor="middle" fill="#1C1B1A" font-size="19" font-weight="900">Signed Grant</text>
-              <text x="422" y="436" text-anchor="middle" fill="#6D675F" font-size="13">single-use action envelope</text>
-            </g>
+                <path class="edge active execute-flow" d="M582 374 C666 300 760 274 914 274 C970 274 972 172 1008 172" marker-end="url(#arrow)"/>
+                <text class="flow-label execute-label" x="772" y="298">authorized execute</text>
+                <path class="edge active delay-a" d="M1116 248 V334" marker-end="url(#arrow)"/>
+                <text class="flow-label" x="1132" y="296">spawn</text>
+                <path class="edge active delay-b" d="M1116 456 V544" marker-end="url(#arrow)"/>
+                <text class="flow-label" x="1132" y="506">apply controls</text>
+                <path class="edge audit" d="M1008 640 C956 710 842 710 802 648" marker-end="url(#arrow-ink)"/>
+                <text class="flow-label dark evidence-label" x="822" y="724">enforcement evidence</text>
 
-            <g filter="url(#diagram-shadow)">
-              <rect x="596" y="128" width="210" height="112" rx="28" fill="#1C1B1A"/>
-              <path d="M628 205H774" stroke="#F15A38" stroke-width="8" stroke-linecap="round"/>
-              <text x="701" y="176" text-anchor="middle" fill="#FAF7F3" font-size="19" font-weight="900">Tool Gateway</text>
-              <text x="701" y="212" text-anchor="middle" fill="#F6B18E" font-size="13">MCP-style effect contracts</text>
-            </g>
+                <g class="arch-node primary" data-node="agent" tabindex="0" transform="translate(82 122)">
+                  <rect width="162" height="100" rx="22"/><circle class="port out" cx="162" cy="50" r="5"/>
+                  <text class="node-title" x="20" y="35">Agent / CLI</text><text class="node-sub" x="20" y="60">commands + local API</text><text class="node-code" x="20" y="82">kechaa/cli.py</text>
+                </g>
+                <g class="arch-node" data-node="tool" tabindex="0" transform="translate(82 284)">
+                  <rect width="162" height="100" rx="22"/><circle class="port out" cx="162" cy="48" r="5"/>
+                  <text class="node-title" x="20" y="35">Tool Request</text><text class="node-sub" x="20" y="60">declared effects</text><text class="node-code" x="20" y="82">mcp-check</text>
+                </g>
+                <g class="arch-node" data-node="admin" tabindex="0" transform="translate(82 470)">
+                  <rect width="162" height="100" rx="22"/><circle class="port out" cx="162" cy="48" r="5"/>
+                  <text class="node-title" x="20" y="35">Admin Ops</text><text class="node-sub" x="20" y="60">policy, audit, recovery</text><text class="node-code" x="20" y="82">checkpoint</text>
+                </g>
 
-            <g filter="url(#diagram-shadow)">
-              <rect x="596" y="308" width="210" height="142" rx="30" fill="url(#signal-gradient)"/>
-              <circle cx="641" cy="354" r="20" fill="#1C1B1A" opacity="0.9"/>
-              <text x="701" y="358" text-anchor="middle" fill="#1C1B1A" font-size="22" font-weight="950">Policy Engine</text>
-              <text x="701" y="390" text-anchor="middle" fill="#1C1B1A" font-size="13" font-weight="800">current action + execution history</text>
-              <text x="701" y="418" text-anchor="middle" fill="#1C1B1A" font-size="12" font-weight="700" opacity="0.74">leases • posture • prior denials</text>
-            </g>
+                <g class="arch-node primary" data-node="daemon" tabindex="0" transform="translate(350 128)">
+                  <rect width="232" height="128" rx="26"/><circle class="port in" cx="0" cy="44" r="5"/><circle class="port out" cx="156" cy="128" r="5"/>
+                  <text class="node-title" x="24" y="42">Daemon Server</text><text class="node-sub" x="24" y="72">Unix socket dispatcher</text><text class="node-code" x="24" y="102">kechaa/daemon.py</text>
+                </g>
+                <g class="arch-node hot" data-node="engine" tabindex="0" transform="translate(350 348)">
+                  <rect width="232" height="124" rx="26"/><circle class="port out" cx="232" cy="28" r="5"/><circle class="port out" cx="232" cy="54" r="5"/><circle class="port out" cx="232" cy="84" r="5"/>
+                  <text class="node-title" x="24" y="42">Authority Engine</text><text class="node-sub" x="24" y="70">grants, leases, posture</text><text class="node-code" x="24" y="96">kechaa/engine.py</text>
+                </g>
+                <g class="arch-node" data-node="policy" tabindex="0" transform="translate(350 510)">
+                  <rect width="232" height="104" rx="22"/><circle class="port out" cx="104" cy="0" r="5"/>
+                  <text class="node-title" x="24" y="36">Policy + Effects</text><text class="node-sub" x="24" y="62">rules, scopes, inputs</text><text class="node-code" x="24" y="86">policy.py · effects.py</text>
+                </g>
 
-            <g filter="url(#diagram-shadow)">
-              <rect x="888" y="205" width="204" height="132" rx="30" fill="url(#card-warm)" stroke="#E9E2D9"/>
-              <rect x="922" y="236" width="136" height="12" rx="6" fill="#1C1B1A"/>
-              <rect x="922" y="262" width="92" height="12" rx="6" fill="#F15A38"/>
-              <text x="990" y="296" text-anchor="middle" fill="#1C1B1A" font-size="21" font-weight="950">Supervisor</text>
-              <text x="990" y="322" text-anchor="middle" fill="#6D675F" font-size="13">Linux execution boundary</text>
-            </g>
+                <g class="arch-node" data-node="store" tabindex="0" transform="translate(708 128)">
+                  <rect width="188" height="100" rx="22"/><circle class="port in" cx="0" cy="50" r="5"/>
+                  <text class="node-title" x="20" y="35">SQLite State</text><text class="node-sub" x="20" y="60">runs, grants, policies</text><text class="node-code" x="20" y="82">store.py</text>
+                </g>
+                <g class="arch-node" data-node="history" tabindex="0" transform="translate(708 352)">
+                  <rect width="188" height="100" rx="22"/><circle class="port in" cx="0" cy="50" r="5"/>
+                  <text class="node-title" x="20" y="35">History</text><text class="node-sub" x="20" y="60">ordered run events</text><text class="node-code" x="20" y="82">history table</text>
+                </g>
+                <g class="arch-node dark" data-node="audit" tabindex="0" transform="translate(708 536)">
+                  <rect width="188" height="100" rx="22"/><circle class="port in" cx="0" cy="28" r="5"/><circle class="port in" cx="188" cy="80" r="5"/>
+                  <text class="node-title" x="20" y="35">Audit Chain</text><text class="node-sub" x="20" y="60">records + anchors</text><text class="node-code" x="20" y="82">audit table</text>
+                </g>
 
-            <g filter="url(#diagram-shadow)">
-              <rect x="888" y="434" width="204" height="112" rx="26" fill="#1C1B1A"/>
-              <text x="990" y="480" text-anchor="middle" fill="#FAF7F3" font-size="20" font-weight="900">Audit Store</text>
-              <text x="990" y="508" text-anchor="middle" fill="#F6B18E" font-size="13">events • anchors • evidence</text>
-            </g>
-
-            <path class="flow-line signal-flow" d="M236 311 C274 311 280 242 320 242" stroke="#F15A38" stroke-width="7" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
-            <path class="flow-line signal-flow delay-1" d="M236 311 C276 311 280 416 320 416" stroke="#F15A38" stroke-width="7" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
-            <path class="flow-line" d="M524 242 C560 242 558 184 596 184" stroke="#1C1B1A" stroke-width="4" fill="none" stroke-linecap="round" marker-end="url(#arrow-ink)"/>
-            <path class="flow-line signal-flow delay-2" d="M524 416 C560 416 558 379 596 379" stroke="#F15A38" stroke-width="7" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
-            <path class="flow-line signal-flow delay-3" d="M806 379 C850 379 844 271 888 271" stroke="#F15A38" stroke-width="7" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
-            <path class="flow-line" d="M990 337 V434" stroke="#F6B18E" stroke-width="6" fill="none" stroke-linecap="round" marker-end="url(#arrow-signal)"/>
-            <path class="flow-line" d="M701 450 C748 556 828 540 888 490" stroke="#1C1B1A" stroke-width="3" fill="none" stroke-dasharray="9 11" marker-end="url(#arrow-ink)"/>
-
-            <g filter="url(#diagram-glow)">
-              <circle cx="236" cy="311" r="5" fill="#F15A38"/>
-              <circle cx="524" cy="416" r="5" fill="#F15A38"/>
-              <circle cx="806" cy="379" r="5" fill="#F15A38"/>
-            </g>
-
-            <g>
-              <rect x="58" y="580" width="230" height="48" rx="24" fill="#1C1B1A"/>
-              <circle cx="84" cy="604" r="7" fill="#F15A38"/>
-              <text x="104" y="609" fill="#FAF7F3" font-size="13" font-weight="800">authorization flow</text>
-              <rect x="308" y="580" width="190" height="48" rx="24" fill="#E9E2D9"/>
-              <circle cx="334" cy="604" r="7" fill="#F6B18E"/>
-              <text x="354" y="609" fill="#1C1B1A" font-size="13" font-weight="800">audit trail</text>
-              <rect x="518" y="580" width="250" height="48" rx="24" fill="#FFFDFC" stroke="#E9E2D9"/>
-              <circle cx="544" cy="604" r="7" fill="#1C1B1A"/>
-              <text x="564" y="609" fill="#1C1B1A" font-size="13" font-weight="800">trusted control plane</text>
-            </g>
-          </svg>
+                <g class="arch-node primary" data-node="supervisor" tabindex="0" transform="translate(1008 128)">
+                  <rect width="202" height="120" rx="26"/><circle class="port in" cx="0" cy="44" r="5"/><circle class="port out" cx="108" cy="120" r="5"/>
+                  <text class="node-title" x="22" y="40">Supervisor</text><text class="node-sub" x="22" y="68">cgroup + worker launch</text><text class="node-code" x="22" y="96">execute()</text>
+                </g>
+                <g class="arch-node" data-node="worker" tabindex="0" transform="translate(1008 334)">
+                  <rect width="202" height="122" rx="24"/><circle class="port in" cx="108" cy="0" r="5"/><circle class="port out" cx="108" cy="122" r="5"/>
+                  <text class="node-title" x="22" y="40">Worker</text><text class="node-sub" x="22" y="68">drops authority</text><text class="node-sub" x="22" y="88">runs the action</text><text class="node-code" x="22" y="110">worker.py</text>
+                </g>
+                <g class="arch-node dark" data-node="kernel" tabindex="0" transform="translate(1008 544)">
+                  <rect width="202" height="122" rx="24"/><circle class="port in" cx="108" cy="0" r="5"/><circle class="port out" cx="0" cy="52" r="5"/>
+                  <text class="node-title" x="22" y="40">Linux Primitives</text><text class="node-sub" x="22" y="68">Landlock, seccomp, ns</text><text class="node-code" x="22" y="98">backends/linux.py</text>
+                </g>
+              </g>
+            </svg>
+          </div>
+          <aside class="node-panel" aria-live="polite">
+            <p class="panel-kicker">Selected component</p>
+            <h3 id="node-title">Authority Engine</h3>
+            <p id="node-body">The engine is the authorization core: it opens runs, prepares and consumes grants, evaluates tool requests, updates posture, manages leases and writes trusted history.</p>
+            <dl id="node-meta"><div><dt>Module</dt><dd>kechaa/engine.py</dd></div><div><dt>Key flow</dt><dd>prepare → consume → finish</dd></div></dl>
+          </aside>
         </div>
       </div>
     </section>
 
     <section class="section demo" id="demo">
-      <div class="container demo-grid">
-        <div class="demo-panel">
-          <span class="section-kicker">Interactive walkthrough</span>
-          <h2>See how context changes authorization.</h2>
-          <p>A simple sequence shows how KECHAA treats an agent action as part of a session, not as an isolated command.</p>
-          <div class="demo-controls" aria-label="Demo steps">
-            <button class="button button-primary" type="button" data-demo-step="0">1. Authorized task action</button>
-            <button class="button button-warn" type="button" data-demo-step="1">2. Risky tool request</button>
-            <button class="button button-ghost" type="button" data-demo-step="2">3. Follow-up decision</button>
-          </div>
+      <div class="container demo-layout">
+        <div class="demo-copy">
+          <p class="kicker">Runtime sequence</p>
+          <h2>One action. Many checks.</h2>
+          <p>The walkthrough mirrors the current control path: a request is scoped by a task contract, checked against policy and history, executed through a supervised worker when approved, and recorded as evidence.</p>
         </div>
-        <div class="demo-panel terminal" aria-live="polite">
-          <div class="terminal-header" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="demo-terminal">
+          <div class="terminal-tabs" role="tablist" aria-label="Runtime sequence steps"><button type="button" data-demo-step="0" role="tab">grant</button><button type="button" data-demo-step="1" role="tab">tool</button><button type="button" data-demo-step="2" role="tab">posture</button></div>
           <pre id="demo-output"></pre>
         </div>
       </div>
     </section>
 
     <section class="section use-cases" id="use-cases">
-      <div class="container">
-        <div class="section-heading"><span class="section-kicker">Use cases</span><h2>Built for agent workflows with real side effects.</h2></div>
-        <div class="use-grid">
-          <article><h3>Autonomous coding agents</h3><p>Bind command execution to a project-specific task contract.</p></article>
-          <article><h3>AI development workflows</h3><p>Keep approval, history and audit separate from the agent's reasoning.</p></article>
-          <article><h3>Tool-using agents</h3><p>Evaluate declared filesystem, network and tool effects before action.</p></article>
-          <article><h3>Long-running sessions</h3><p>Use leases, posture changes and history to govern behavior over time.</p></article>
-          <article><h3>Multi-agent environments</h3><p>Separate agent identity, session state, history and authorization.</p></article>
-          <article><h3>MCP-style ecosystems</h3><p>Bring effect-contract authorization to agent tool requests.</p></article>
+      <div class="container use-layout">
+        <div><p class="kicker">Use cases</p><h2>For agent workflows with real side effects.</h2></div>
+        <div class="use-list">
+          <article><h3>Autonomous coding agents</h3><p>Bind local command execution to a project-specific contract.</p></article>
+          <article><h3>Tool-using agents</h3><p>Evaluate filesystem, network and tool effects as explicit requests.</p></article>
+          <article><h3>Long-running sessions</h3><p>Use leases, history and posture to govern behavior over time.</p></article>
+          <article><h3>Multi-agent environments</h3><p>Separate identity, session state, run history and authorization context.</p></article>
         </div>
       </div>
     </section>
 
     <section class="section developers" id="developers">
-      <div class="container two-column align-start">
+      <div class="container developer-panel">
         <div>
-          <span class="section-kicker">Developer experience</span>
-          <h2>Clone, inspect, run and extend.</h2>
-          <p>KECHAA is an open-source Python security project with a CLI, policy files, local API flows, demos and tests for the core authorization model.</p>
-          <div class="code-card">
-<pre><code>git clone https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents
+          <p class="kicker">Developer experience</p>
+          <h2>Clone. Run. Inspect.</h2>
+          <p>KECHAA is a Python security project with a CLI, local Unix socket API, policies, examples, demos and tests for the control model.</p>
+        </div>
+        <pre class="code-card"><code>git clone https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents
 cd KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents
 python -m unittest -v tests.test_security_control_plane tests.test_adversarial_control_plane
 python tools/demo_attack_defense.py</code></pre>
-          </div>
-        </div>
-        <div class="docs-list">
-          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents#readme"><span>README</span><small>overview and quick start</small></a>
-          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/security.md"><span>Security model</span><small>trust boundaries and controls</small></a>
-          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/policy.md"><span>Policy guide</span><small>rules, profiles and effects</small></a>
-          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/operations.md"><span>Operations</span><small>install, run and maintain</small></a>
+        <div class="doc-links">
+          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents#readme">README</a>
+          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/security.md">Security model</a>
+          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/api.md">API reference</a>
+          <a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/architecture.md">Architecture docs</a>
         </div>
       </div>
     </section>
 
-    <section class="section get-started" id="get-started">
-      <div class="container cta-panel">
-        <span class="section-kicker">Get started</span>
-        <h2>Give autonomous agents explicit boundaries.</h2>
-        <p>Explore the repository, read the security model and run the demo to see task-scoped authorization and history-aware control in action.</p>
-        <div class="hero-actions centered">
-          <a class="button button-primary" href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents">Open GitHub</a>
-          <a class="button button-ghost" href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/security.md">Read Security Model</a>
-          <a class="button button-ghost" href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/integrations.md">View Integrations</a>
-        </div>
+    <section class="final-cta">
+      <div class="container final-card">
+        <p class="kicker">Get started</p>
+        <h2>Give agent execution a boundary.</h2>
+        <div class="hero-actions"><a class="button primary" href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents">Open GitHub</a><a class="button secondary" href="#architecture">Explore map</a></div>
       </div>
     </section>
   </main>
 
   <footer class="footer">
     <div class="container footer-grid">
-      <div><a class="brand" href="#top"><span class="brand-mark">K</span><span>KECHAA</span></a><p>Kernel-Enforced Containment for Hijacked AI Agents.</p></div>
+      <a class="brand" href="#top"><span>K</span><strong>KECHAA</strong></a>
       <div><h3>Project</h3><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents">GitHub</a><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/LICENSE">MIT License</a><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/SECURITY.md">Security Policy</a></div>
-      <div><h3>Documentation</h3><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/operations.md">Operations</a><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/policy.md">Policy</a><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/integrations.md">Integrations</a></div>
-      <div><h3>Explore</h3><a href="#capabilities">Capabilities</a><a href="#architecture">Architecture</a><a href="#demo">Demo</a></div>
+      <div><h3>Docs</h3><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/operations.md">Operations</a><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/policy.md">Policy</a><a href="https://github.com/ruchithamohan/KECHAA-Kernel-Enforced-Containment-for-Hijacked-AI-Agents/blob/main/docs/integrations.md">Integrations</a></div>
     </div>
   </footer>
-
-  <script src="./script.js?v=20261102-light-hazard" defer></script>
+  <script src="./script.js?v=hazard-final-local-7" defer></script>
 </body>
 </html>
